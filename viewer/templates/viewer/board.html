@@ -1,0 +1,4360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Glyph Board Test</title>
+  <script src="https://unpkg.com/konva@10/konva.min.js"></script>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+      background: #fff;
+      color: #222;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .topbar {
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 0 12px;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+      background: #f6f7f9;
+      z-index: 30;
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .menu-wrap {
+      position: relative;
+    }
+
+    .menu-btn {
+      font-size: 13px;
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(0, 0, 0, 0.15);
+      background: #fff;
+      cursor: pointer;
+      color: #222;
+    }
+
+    .menu-dropdown {
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      min-width: 180px;
+      background: #fff;
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+      padding: 6px;
+      display: none;
+      z-index: 40;
+    }
+
+    .menu-dropdown.open {
+      display: block;
+    }
+
+    .menu-item {
+      width: 100%;
+      border: 0;
+      background: transparent;
+      text-align: left;
+      font-size: 13px;
+      color: #222;
+      padding: 8px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .menu-item:hover {
+      background: rgba(10, 110, 207, 0.08);
+    }
+
+    .main-layout {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: row;
+      align-items: stretch;
+    }
+
+    .detail-panel {
+      width: 280px;
+      min-width: 180px;
+      max-width: 65vw;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid rgba(0, 0, 0, 0.12);
+      background: #f6f7f9;
+      box-shadow: 2px 0 16px rgba(0, 0, 0, 0.06);
+      z-index: 20;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .detail-panel-header {
+      padding: 14px 16px 10px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      color: #444;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+      background: rgba(255, 255, 255, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .panel-header-title {
+      min-width: 0;
+    }
+
+    .panel-collapse-btn {
+      font-size: 11px;
+      line-height: 1;
+      padding: 4px 8px;
+      border-radius: 6px;
+      border: 1px solid rgba(0, 0, 0, 0.15);
+      background: #fff;
+      cursor: pointer;
+      color: #333;
+      flex-shrink: 0;
+    }
+
+    .panel-resizer {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 8px;
+      z-index: 25;
+      cursor: ew-resize;
+      background: transparent;
+    }
+
+    .panel-resizer:hover {
+      background: rgba(10, 110, 207, 0.08);
+    }
+
+    .panel-resizer.left {
+      right: -4px;
+    }
+
+    .panel-resizer.right {
+      left: -4px;
+    }
+
+    .detail-panel.collapsed,
+    .search-panel.collapsed {
+      width: 42px !important;
+      min-width: 42px !important;
+    }
+
+    .detail-panel.collapsed .detail-panel-body,
+    .search-panel.collapsed .search-panel-body {
+      display: none;
+    }
+
+    .detail-panel.collapsed .panel-header-title,
+    .search-panel.collapsed .panel-header-title {
+      display: none;
+    }
+
+    .detail-panel.collapsed .detail-panel-header,
+    .search-panel.collapsed .search-panel-header {
+      justify-content: center;
+      padding-left: 6px;
+      padding-right: 6px;
+    }
+
+    .detail-panel.collapsed .panel-collapse-btn,
+    .search-panel.collapsed .panel-collapse-btn {
+      padding: 4px 6px;
+      min-width: 28px;
+    }
+
+    .detail-panel-body {
+      flex: 1;
+      overflow: auto;
+      padding: 14px 16px 20px;
+    }
+
+    .detail-thumb-wrap {
+      background: #fff;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+
+    .detail-thumb-wrap img {
+      max-width: 100%;
+      max-height: 220px;
+      object-fit: contain;
+      vertical-align: middle;
+    }
+
+    .detail-image-name {
+      margin-top: 10px;
+      font-size: 24px;
+      font-weight: 700;
+      line-height: 1.2;
+      color: #111;
+      text-align: center;
+      word-break: break-word;
+    }
+
+    .detail-image-name.detail-image-name-placeholder {
+      font-size: 13px;
+      font-weight: 600;
+      color: #888;
+    }
+
+    .detail-thumb-wrap.detail-thumb-empty {
+      min-height: 120px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .detail-thumb-wrap.detail-thumb-empty #detail-img[hidden] + .detail-image-name {
+      margin-top: 0;
+    }
+
+    #detail-mode-select:disabled,
+    #detail-transliteration-input:disabled,
+    #detail-labels-input:disabled,
+    #detail-comments-input:disabled {
+      background: #eceef1;
+      color: #888;
+      cursor: not-allowed;
+    }
+
+    .detail-editor-disabled .detail-editor-label,
+    .detail-editor-disabled .confidence-label {
+      color: #999;
+    }
+
+    .detail-confidence-btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .detail-canvas-toggle:has(input:disabled) {
+      cursor: not-allowed;
+      opacity: 0.65;
+    }
+
+    .detail-editor {
+      margin-bottom: 16px;
+    }
+
+    .detail-editor-label {
+      display: block;
+      font-size: 12px;
+      color: #666;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    #detail-transliteration-input,
+    #detail-mode-select,
+    #detail-labels-input,
+    #detail-comments-input {
+      width: 100%;
+      box-sizing: border-box;
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      background: #fff;
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 13px;
+      color: #111;
+    }
+
+    .detail-field {
+      margin-top: 10px;
+    }
+
+    .confidence-row {
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .confidence-label {
+      font-size: 12px;
+      color: #666;
+      font-weight: 700;
+    }
+
+    .detail-confidence-btn {
+      width: 34px;
+      height: 28px;
+      border-radius: 7px;
+      border: 1px solid rgba(0, 0, 0, 0.15);
+      background: #fff;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 700;
+      color: #111;
+    }
+
+    .detail-confidence-btn.active {
+      border-color: #0a6ecf;
+      background: #0a6ecf;
+      color: #fff;
+    }
+
+    .detail-save-status {
+      margin-top: 10px;
+      font-size: 12px;
+      line-height: 1.35;
+      color: #b00020;
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: rgba(176, 0, 32, 0.08);
+      border: 1px solid rgba(176, 0, 32, 0.2);
+    }
+
+    .detail-save-status[hidden] {
+      display: none !important;
+    }
+
+    .detail-canvas-toggle {
+      margin-top: 10px;
+      margin-bottom: 4px;
+      font-size: 12px;
+      color: #444;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      user-select: none;
+      cursor: pointer;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      background: #f6f7f9;
+      font-weight: 600;
+    }
+
+    .detail-canvas-toggle input {
+      width: 14px;
+      height: 14px;
+      margin: 0;
+    }
+
+    .detail-dl {
+      margin: 0;
+      font-size: 12px;
+    }
+
+    .detail-dl dt {
+      margin: 10px 0 2px;
+      color: #666;
+      font-weight: 600;
+    }
+
+    .detail-dl dd {
+      margin: 0 0 4px;
+      color: #111;
+      word-break: break-all;
+    }
+
+    .detail-dl a {
+      color: #0a6ecf;
+    }
+
+    .board-area {
+      flex: 1;
+      position: relative;
+      min-width: 0;
+      min-height: 0;
+      background: #fff;
+    }
+
+    #container {
+      width: 100%;
+      height: 100%;
+      background: #fff;
+    }
+
+    .search-panel {
+      width: 320px;
+      min-width: 220px;
+      max-width: 65vw;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      border-left: 1px solid rgba(0, 0, 0, 0.12);
+      background: #f6f7f9;
+      box-shadow: -2px 0 16px rgba(0, 0, 0, 0.06);
+      z-index: 20;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .search-panel-header {
+      padding: 14px 16px 10px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      color: #444;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+      background: rgba(255, 255, 255, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .search-panel-body {
+      flex: 1;
+      overflow: auto;
+      padding: 12px 14px 16px;
+    }
+
+    .search-field {
+      width: 100%;
+      box-sizing: border-box;
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      background: #fff;
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    .search-btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .search-btn-row button {
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 8px;
+      border: 1px solid rgba(0, 0, 0, 0.15);
+      background: #fff;
+      cursor: pointer;
+    }
+
+    .search-btn-row button.primary {
+      background: #0a6ecf;
+      border-color: #0a6ecf;
+      color: #fff;
+    }
+
+    .search-controls {
+      font-size: 12px;
+      color: #444;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .search-controls label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+
+    .search-size-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .search-size-row input[type="range"] {
+      flex: 1;
+      min-width: 80px;
+    }
+
+    .search-status {
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 10px;
+    }
+
+    .search-results {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .search-row {
+      border: 1px solid #b0b0b0;
+      border-radius: 6px;
+      background: #fafafa;
+      overflow: hidden;
+      cursor: pointer;
+    }
+
+    .search-row-title {
+      font-size: 12px;
+      font-weight: 700;
+      padding: 8px 10px;
+      background: rgba(255, 255, 255, 0.85);
+      border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    }
+
+    .search-row-thumbs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding: 8px 10px;
+      background: #fff;
+    }
+
+    .search-row-thumbs img {
+      object-fit: contain;
+      vertical-align: middle;
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      border-radius: 4px;
+      background: #fff;
+    }
+
+    .search-row-thumbs .search-thumb-missing {
+      font-size: 10px;
+      color: #999;
+      padding: 4px;
+      border: 1px dashed #ccc;
+      border-radius: 4px;
+    }
+
+    #tablet-load-dialog {
+      border: none;
+      border-radius: 12px;
+      padding: 0;
+      max-width: min(560px, 96vw);
+      max-height: min(88vh, 720px);
+      width: 100%;
+      background: #fff;
+      color: #222;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.18);
+      font-family: Arial, sans-serif;
+      z-index: 200;
+    }
+
+    #tablet-load-dialog::backdrop {
+      background: rgba(0, 0, 0, 0.35);
+    }
+
+    #sort-selection-dialog {
+      border: none;
+      border-radius: 12px;
+      padding: 0;
+      max-width: min(420px, 96vw);
+      width: 100%;
+      background: #fff;
+      color: #222;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.18);
+      font-family: Arial, sans-serif;
+      z-index: 200;
+    }
+
+    #sort-selection-dialog::backdrop {
+      background: rgba(0, 0, 0, 0.35);
+    }
+
+    .tablet-dialog-inner {
+      display: flex;
+      flex-direction: column;
+      max-height: min(88vh, 720px);
+    }
+
+    .tablet-dialog-header {
+      padding: 16px 18px 12px;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+      background: #f6f7f9;
+      border-radius: 12px 12px 0 0;
+    }
+
+    .tablet-dialog-header h2 {
+      margin: 0 0 6px;
+      font-size: 16px;
+      font-weight: 700;
+      color: #333;
+    }
+
+    .tablet-dialog-hint {
+      margin: 0;
+      font-size: 12px;
+      line-height: 1.45;
+      color: #666;
+    }
+
+    .tablet-dialog-body {
+      flex: 1;
+      overflow: auto;
+      padding: 10px 14px 14px;
+      min-height: 120px;
+    }
+
+    .tablet-details {
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: 8px;
+      margin-bottom: 8px;
+      background: #fafafa;
+    }
+
+    .tablet-details > summary {
+      list-style: none;
+      cursor: pointer;
+      padding: 8px 10px;
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      user-select: none;
+    }
+
+    .tablet-details > summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .tablet-details > summary::before {
+      content: '';
+      width: 0;
+      height: 0;
+      border-left: 5px solid #555;
+      border-top: 4px solid transparent;
+      border-bottom: 4px solid transparent;
+      transform: rotate(0deg);
+      transition: transform 0.15s ease;
+      flex-shrink: 0;
+    }
+
+    .tablet-details[open] > summary::before {
+      transform: rotate(90deg);
+    }
+
+    .tablet-details .tablet-summary-text {
+      flex: 1;
+    }
+
+    .tablet-sides {
+      padding: 8px 10px 12px 12px;
+      border-top: 1px solid rgba(0, 0, 0, 0.06);
+    }
+
+    .side-block {
+      margin-top: 8px;
+      padding: 10px 10px 12px;
+      background: #fff;
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      border-radius: 8px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    }
+
+    .side-block:first-child {
+      margin-top: 4px;
+    }
+
+    .side-block-head {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #333;
+      margin: 0 0 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    }
+
+    .side-block-head label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+
+    /* Fixed columns so line rows align predictably (no ragged wrap). */
+    .line-row {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 6px 6px;
+      padding: 0;
+      align-items: stretch;
+    }
+
+    @media (max-width: 420px) {
+      .line-row {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+      }
+    }
+
+    .line-row label {
+      font-size: 11px;
+      font-weight: 500;
+      color: #333;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 5px;
+      cursor: pointer;
+      margin: 0;
+      padding: 6px 4px;
+      min-height: 32px;
+      border-radius: 6px;
+      border: 1px solid transparent;
+      box-sizing: border-box;
+    }
+
+    .line-row label:hover {
+      background: rgba(10, 110, 207, 0.06);
+      border-color: rgba(10, 110, 207, 0.12);
+    }
+
+    .line-row label input[type="checkbox"] {
+      width: 15px;
+      height: 15px;
+      flex-shrink: 0;
+      margin: 0;
+      cursor: pointer;
+    }
+
+    .tablet-dialog-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      padding: 12px 16px;
+      border-top: 1px solid rgba(0, 0, 0, 0.1);
+      background: rgba(246, 247, 249, 0.9);
+      border-radius: 0 0 12px 12px;
+    }
+
+    .tablet-dialog-footer button {
+      font-size: 13px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: 1px solid rgba(0, 0, 0, 0.15);
+      background: #fff;
+      cursor: pointer;
+    }
+
+    .tablet-dialog-footer button.tablet-load-primary {
+      background: #0a6ecf;
+      border-color: #0a6ecf;
+      color: #fff;
+    }
+
+    .tablet-dialog-empty {
+      margin: 8px 0 0;
+      font-size: 12px;
+      color: #888;
+      font-style: italic;
+    }
+
+    .sign-edit-body {
+      display: grid;
+      gap: 10px;
+    }
+
+    .sign-edit-row {
+      display: grid;
+      gap: 5px;
+    }
+
+    .sign-edit-row label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .sign-edit-row input,
+    .sign-edit-row select {
+      width: 100%;
+      box-sizing: border-box;
+      border: 1px solid rgba(0, 0, 0, 0.2);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 13px;
+      background: #fff;
+      color: #222;
+    }
+
+    #sign-edit-select {
+      height: 180px;
+      padding: 4px;
+    }
+
+    .sign-edit-hint {
+      margin: 0;
+      font-size: 12px;
+      color: #666;
+      line-height: 1.4;
+    }
+
+    .sign-edit-warning {
+      margin: 0;
+      font-size: 12px;
+      color: #8a4f00;
+      min-height: 16px;
+    }
+
+    .sign-edit-status {
+      margin: 0;
+      font-size: 12px;
+      color: #b00020;
+      min-height: 16px;
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="menu-wrap">
+      <button type="button" class="menu-btn" id="top-menu-btn" aria-haspopup="true" aria-expanded="false">Menu</button>
+      <div class="menu-dropdown" id="top-menu-dropdown" role="menu" aria-label="Board menu">
+        <button type="button" class="menu-item" id="menu-load-tablets" role="menuitem">Load tablets...</button>
+        <button type="button" class="menu-item" id="menu-load-json-project" role="menuitem">Load Json...</button>
+        <button type="button" class="menu-item" id="menu-save-json-project" role="menuitem">Save Json...</button>
+        <button type="button" class="menu-item" id="menu-edit-transliteration-sign" role="menuitem">Edit transliteration sign...</button>
+        <button type="button" class="menu-item" id="menu-sign-frequency-catalog" role="menuitem">Sign frequency catalog…</button>
+        <button type="button" class="menu-item" id="menu-deselect-glyphs" role="menuitem">Deselect selection</button>
+        <button type="button" class="menu-item" id="menu-remove-duplicate-glyphs-in-selection" role="menuitem">Remove duplicate glyphs in selection</button>
+        <button type="button" class="menu-item" id="menu-delete-links-touching-selection" role="menuitem">Delete links touching selection</button>
+        <button type="button" class="menu-item" id="menu-delete-links-within-selection" role="menuitem">Delete links inside selection</button>
+        <button type="button" class="menu-item" id="menu-sort-selection-horizontal" role="menuitem">Sort selection horizontally...</button>
+        <button type="button" class="menu-item" id="menu-sort-selection-vertical" role="menuitem">Sort selection vertically...</button>
+        <button type="button" class="menu-item" id="menu-align-selection-median-y" role="menuitem">Align selection to median Y (H)</button>
+        <button type="button" class="menu-item" id="menu-align-selection-median-x" role="menuitem">Align selection to median X (V)</button>
+        <button type="button" class="menu-item" id="menu-align-selection-into-rows" role="menuitem">Align selection into rows</button>
+      </div>
+    </div>
+    <input type="file" id="project-json-file-input" accept=".json,application/json" style="display:none" />
+  </header>
+  <div class="main-layout">
+  <aside class="detail-panel" id="detail-panel" aria-label="Glyph detail">
+    <div class="detail-panel-header">
+      <span class="panel-header-title">Glyph detail</span>
+      <button type="button" class="panel-collapse-btn" id="detail-panel-toggle" aria-expanded="true" title="Minimize panel">-</button>
+    </div>
+    <div class="panel-resizer left" id="detail-panel-resizer" aria-hidden="true"></div>
+    <div class="detail-panel-body">
+      <div class="detail-content" id="detail-content">
+        <div class="detail-thumb-wrap detail-thumb-empty" id="detail-thumb-wrap">
+          <img id="detail-img" alt="" hidden />
+          <div class="detail-image-name detail-image-name-placeholder" id="detail-image-name">Click a glyph on the board to preview</div>
+        </div>
+        <div class="detail-editor detail-editor-disabled" id="detail-editor">
+          <div class="detail-field">
+            <label class="detail-editor-label" for="detail-mode-select">Mode</label>
+            <select id="detail-mode-select" disabled>
+              <option value="Insertion" selected>Insertion</option>
+              <option value="Transliteration">Transliteration</option>
+              <option value="Alignment">Alignment</option>
+            </select>
+          </div>
+          <label class="detail-canvas-toggle">
+            <input type="checkbox" id="canvas-show-transliterations" disabled />
+            Show Transliteration
+          </label>
+          <label class="detail-canvas-toggle">
+            <input type="checkbox" id="canvas-show-links" checked disabled />
+            Show links
+          </label>
+          <label class="detail-canvas-toggle">
+            <input type="checkbox" id="canvas-show-addresses" disabled />
+            Show addresses
+          </label>
+          <label class="detail-editor-label" for="detail-transliteration-input">Transliteration</label>
+          <input type="text" id="detail-transliteration-input" autocomplete="off" spellcheck="false" disabled />
+          <div class="confidence-row">
+            <span class="confidence-label">Confidence</span>
+            <div class="detail-confidence-buttons" id="detail-confidence-buttons">
+              <button type="button" class="detail-confidence-btn" data-value="0" disabled>0</button>
+              <button type="button" class="detail-confidence-btn" data-value="1" disabled>1</button>
+              <button type="button" class="detail-confidence-btn" data-value="2" disabled>2</button>
+              <button type="button" class="detail-confidence-btn" data-value="3" disabled>3</button>
+              <button type="button" class="detail-confidence-btn" data-value="4" disabled>4</button>
+            </div>
+          </div>
+          <div class="detail-field">
+            <label class="detail-editor-label" for="detail-labels-input">Labels</label>
+            <input type="text" id="detail-labels-input" autocomplete="off" spellcheck="false" disabled />
+          </div>
+          <div class="detail-field">
+            <label class="detail-editor-label" for="detail-comments-input">Comments</label>
+            <input type="text" id="detail-comments-input" autocomplete="off" spellcheck="false" disabled />
+          </div>
+          <p class="detail-save-status" id="detail-save-status" role="alert" aria-live="polite" hidden></p>
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="board-area" id="board-area">
+  <div id="container"></div>
+  </div>
+
+  <aside class="search-panel" id="search-panel" aria-label="Transliteration search">
+    <div class="search-panel-header">
+      <span class="panel-header-title">Transliteration search</span>
+      <button type="button" class="panel-collapse-btn" id="search-panel-toggle" aria-expanded="true" title="Minimize panel">-</button>
+    </div>
+    <div class="panel-resizer right" id="search-panel-resizer" aria-hidden="true"></div>
+    <div class="search-panel-body">
+      <input type="text" class="search-field" id="search-query" placeholder="e.g. 1 or 62.760" autocomplete="off" spellcheck="false" />
+      <div class="search-btn-row">
+        <button type="button" class="primary" id="search-run-btn">Search</button>
+        <button type="button" id="search-add-board-btn">Add glyphs to board</button>
+      </div>
+      <div class="search-controls">
+        <label><input type="checkbox" id="search-exact" /> Exact match</label>
+        <label><input type="checkbox" id="search-letters" checked /> Exact letters</label>
+        <label><input type="checkbox" id="search-labels" /> Search labels</label>
+        <div class="search-size-row">
+          <span style="font-size:11px;color:#666;font-weight:600;">Thumb size</span>
+          <input type="range" id="search-thumb-size" min="40" max="150" value="80" />
+        </div>
+      </div>
+      <div class="search-status" id="search-status">No results</div>
+      <div class="search-results" id="search-results"></div>
+    </div>
+  </aside>
+  </div>
+
+  <dialog id="tablet-load-dialog" aria-labelledby="tablet-load-title">
+    <div class="tablet-dialog-inner">
+      <div class="tablet-dialog-header">
+        <h2 id="tablet-load-title">Load tablets onto canvas</h2>
+        <p class="tablet-dialog-hint">Sides and line counts come from corpus addresses. Load adds glyphs below the board with 10px between glyphs on a line and 40px between lines.</p>
+      </div>
+      <div class="tablet-dialog-body" id="tablet-load-tree"></div>
+      <div class="tablet-dialog-footer">
+        <button type="button" id="tablet-load-cancel">Close</button>
+        <button type="button" class="tablet-load-primary" id="tablet-load-apply">Load</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="sign-edit-dialog" aria-labelledby="sign-edit-title">
+    <div class="tablet-dialog-inner">
+      <div class="tablet-dialog-header">
+        <h2 id="sign-edit-title">Edit transliteration sign</h2>
+        <p class="tablet-dialog-hint">Signs are split by "." and matched exactly as one sign.</p>
+      </div>
+      <div class="tablet-dialog-body sign-edit-body">
+        <div class="sign-edit-row">
+          <label for="sign-edit-old-input">Sign to replace (type with autocomplete)</label>
+          <input id="sign-edit-old-input" type="text" list="sign-edit-old-list" autocomplete="off" spellcheck="false" />
+          <datalist id="sign-edit-old-list"></datalist>
+        </div>
+        <p class="sign-edit-hint" id="sign-edit-old-count">Occurrences: 0</p>
+        <div class="sign-edit-row">
+          <label for="sign-edit-select">Or select from most common signs</label>
+          <select id="sign-edit-select" size="10"></select>
+        </div>
+        <div class="sign-edit-row">
+          <label for="sign-edit-new-input">New sign value</label>
+          <input id="sign-edit-new-input" type="text" list="sign-edit-old-list" autocomplete="off" spellcheck="false" />
+        </div>
+        <p class="sign-edit-warning" id="sign-edit-warning"></p>
+        <p class="sign-edit-status" id="sign-edit-status"></p>
+      </div>
+      <div class="tablet-dialog-footer">
+        <button type="button" id="sign-edit-cancel">Close</button>
+        <button type="button" class="tablet-load-primary" id="sign-edit-apply">Apply</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="sort-selection-dialog" aria-labelledby="sort-selection-title">
+    <div class="tablet-dialog-inner">
+      <div class="tablet-dialog-header">
+        <h2 id="sort-selection-title">Sort selection</h2>
+        <p class="tablet-dialog-hint" id="sort-selection-hint">Choose how to order the selected glyphs.</p>
+      </div>
+      <div class="tablet-dialog-body sign-edit-body">
+        <div class="sign-edit-row">
+          <label for="sort-dialog-criterion-select">Sort selection by</label>
+          <select id="sort-dialog-criterion-select">
+            <option value="Order" selected>Order</option>
+            <option value="Transliteration">Transliteration</option>
+            <option value="Reverse Transliteration">Reverse Transliteration</option>
+            <option value="Token Count">Token Count</option>
+            <option value="Confidence">Confidence</option>
+            <option value="Connections">Connections</option>
+          </select>
+        </div>
+      </div>
+      <div class="tablet-dialog-footer">
+        <button type="button" id="sort-selection-cancel">Cancel</button>
+        <button type="button" class="tablet-load-primary" id="sort-selection-apply">Apply</button>
+      </div>
+    </div>
+  </dialog>
+
+  {{ glyphs|json_script:"glyph-data" }}
+  {{ tablet_layout|json_script:"tablet-layout-data" }}
+
+  <script>
+    const glyphs = JSON.parse(document.getElementById('glyph-data').textContent);
+
+    /*
+     * BOARD_INTERACTION: Pointer, marquee, multi-select, and deselect share window-level listeners
+     * and mutable flags (marqueeActive, pointerDownOnBg, etc.). Before changing
+     * any of that, read docs/BOARD_POINTER_AND_SELECTION.md and grep this file for BOARD_INTERACTION.
+     */
+    const CLICK_THRESHOLD_PX = 5;
+    const BG_EXTENT = 5000;
+
+    /** True if the native event should start a marquee (Ctrl on Windows/Linux, Ctrl or Cmd on macOS). */
+    function konvaEvtIsMarqueeModifier(nativeEvt) {
+      return !!(nativeEvt && (nativeEvt.ctrlKey || nativeEvt.metaKey));
+    }
+    // #region agent log
+    function dbgSession9(hypothesisId, location, message, data) {
+      fetch('http://127.0.0.1:7850/ingest/db7ac940-d5ce-49c6-98a5-20901be9b0b0', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '9c21b9' },
+        body: JSON.stringify({
+          sessionId: '9c21b9',
+          runId: 'debug1',
+          hypothesisId: hypothesisId,
+          location: location,
+          message: message,
+          data: data || {},
+          timestamp: Date.now(),
+        }),
+      }).catch(function () {});
+    }
+    // #endregion
+    const API_GLYPH_META_UPDATE_URL = '/api/glyph-meta/update';
+    const API_GLYPH_SEARCH_URL = '/api/glyph-search';
+    const API_GLYPHS_BY_ADDRESS_URL = '/api/glyphs-by-address';
+    const API_STEP_GLYPH_URL = '/api/step-glyph';
+    const API_SORT_LAYOUT_URL = '/api/sort-layout';
+    const API_TRANSLITERATION_SIGN_STATS_URL = '/api/transliteration-signs/stats';
+    const API_TRANSLITERATION_SIGN_REPLACE_URL = '/api/transliteration-signs/replace';
+    function postDebugLog(hypothesisId, location, message, data, runId) {
+      fetch('http://127.0.0.1:7244/ingest/9f272141-40ac-4b30-81e8-0ca28c38c5a5', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '2cf695' },
+        body: JSON.stringify({
+          sessionId: '2cf695',
+          runId: runId || 'pre-fix',
+          hypothesisId: hypothesisId,
+          location: location,
+          message: message,
+          data: data || {},
+          timestamp: Date.now(),
+        }),
+      }).catch(function () {});
+    }
+    // #region agent log
+    postDebugLog('H0', 'board.html:script-init', 'Board script loaded', {
+      href: window.location ? window.location.href : null,
+    });
+    // #endregion
+
+    const CONFIDENCE_COLORS_HEX = {
+      0: '#FF0000',
+      1: '#FFA500',
+      2: '#FFFF00',
+      3: '#90EE90',
+      4: '#008000',
+    };
+
+    function getConfidenceColor(confidence) {
+      const c = normalizeConfidence(confidence);
+      return CONFIDENCE_COLORS_HEX[c] || '#0000FF';
+    }
+
+    const boardAreaEl = document.getElementById('board-area');
+    const detailPanelEl = document.getElementById('detail-panel');
+    const searchPanelEl = document.getElementById('search-panel');
+    const detailPanelToggle = document.getElementById('detail-panel-toggle');
+    const searchPanelToggle = document.getElementById('search-panel-toggle');
+    const detailPanelResizer = document.getElementById('detail-panel-resizer');
+    const searchPanelResizer = document.getElementById('search-panel-resizer');
+    const topMenuBtn = document.getElementById('top-menu-btn');
+    const topMenuDropdown = document.getElementById('top-menu-dropdown');
+    const menuLoadTablets = document.getElementById('menu-load-tablets');
+    const menuLoadJsonProject = document.getElementById('menu-load-json-project');
+    const menuSaveJsonProject = document.getElementById('menu-save-json-project');
+    const menuEditTransliterationSign = document.getElementById('menu-edit-transliteration-sign');
+    const menuDeselectGlyphs = document.getElementById('menu-deselect-glyphs');
+    const menuRemoveDuplicateGlyphsInSelection = document.getElementById('menu-remove-duplicate-glyphs-in-selection');
+    const menuDeleteLinksTouchingSelection = document.getElementById('menu-delete-links-touching-selection');
+    const menuDeleteLinksWithinSelection = document.getElementById('menu-delete-links-within-selection');
+    const menuSortSelectionHorizontal = document.getElementById('menu-sort-selection-horizontal');
+    const menuSortSelectionVertical = document.getElementById('menu-sort-selection-vertical');
+    const menuAlignSelectionMedianY = document.getElementById('menu-align-selection-median-y');
+    const menuAlignSelectionMedianX = document.getElementById('menu-align-selection-median-x');
+    const menuAlignSelectionIntoRows = document.getElementById('menu-align-selection-into-rows');
+    const menuSignFrequencyCatalog = document.getElementById('menu-sign-frequency-catalog');
+    const projectJsonFileInput = document.getElementById('project-json-file-input');
+    const signEditDialogEl = document.getElementById('sign-edit-dialog');
+    const signEditOldInputEl = document.getElementById('sign-edit-old-input');
+    const signEditOldListEl = document.getElementById('sign-edit-old-list');
+    const signEditSelectEl = document.getElementById('sign-edit-select');
+    const signEditOldCountEl = document.getElementById('sign-edit-old-count');
+    const signEditNewInputEl = document.getElementById('sign-edit-new-input');
+    const signEditWarningEl = document.getElementById('sign-edit-warning');
+    const signEditStatusEl = document.getElementById('sign-edit-status');
+    const signEditCancelBtn = document.getElementById('sign-edit-cancel');
+    const signEditApplyBtn = document.getElementById('sign-edit-apply');
+    const sortSelectionDialogEl = document.getElementById('sort-selection-dialog');
+    const sortSelectionTitleEl = document.getElementById('sort-selection-title');
+    const sortSelectionHintEl = document.getElementById('sort-selection-hint');
+    const sortDialogCriterionSelectEl = document.getElementById('sort-dialog-criterion-select');
+    const sortSelectionCancelBtn = document.getElementById('sort-selection-cancel');
+    const sortSelectionApplyBtn = document.getElementById('sort-selection-apply');
+    window.__loadJsonTrace = window.__loadJsonTrace || [];
+    function pushLoadJsonTrace(step, data) {
+      const entry = { step: step, data: data || {}, timestamp: Date.now() };
+      window.__loadJsonTrace.push(entry);
+      if (window.__loadJsonTrace.length > 50) window.__loadJsonTrace.shift();
+      console.warn('[LoadJsonTrace]', entry);
+    }
+
+    function closeTopMenu() {
+      if (!topMenuDropdown || !topMenuBtn) return;
+      topMenuDropdown.classList.remove('open');
+      topMenuBtn.setAttribute('aria-expanded', 'false');
+    }
+
+    if (topMenuBtn && topMenuDropdown) {
+      topMenuBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        const opening = !topMenuDropdown.classList.contains('open');
+        if (opening) {
+          topMenuDropdown.classList.add('open');
+          topMenuBtn.setAttribute('aria-expanded', 'true');
+        } else {
+          closeTopMenu();
+        }
+      });
+      document.addEventListener('click', function (e) {
+        if (!topMenuDropdown.classList.contains('open')) return;
+        if (e.target === topMenuBtn || topMenuDropdown.contains(e.target)) return;
+        closeTopMenu();
+      });
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeTopMenu();
+      });
+    }
+
+    if (menuLoadTablets) {
+      menuLoadTablets.addEventListener('click', function () {
+        closeTopMenu();
+        if (typeof window.openTabletLoadDialog === 'function') {
+          window.openTabletLoadDialog();
+        }
+      });
+    }
+    if (menuLoadJsonProject) {
+      menuLoadJsonProject.addEventListener('click', function () {
+        pushLoadJsonTrace('menu-click', { hasInput: !!projectJsonFileInput });
+        // #region agent log
+        fetch('http://127.0.0.1:7244/ingest/9f272141-40ac-4b30-81e8-0ca28c38c5a5',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0f2480'},body:JSON.stringify({sessionId:'0f2480',runId:'initial',hypothesisId:'H1',location:'board.html:menu-load-json-click',message:'Load Json menu handler fired',data:{hasInput:!!projectJsonFileInput},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
+        closeTopMenu();
+        if (!projectJsonFileInput) return;
+        projectJsonFileInput.value = '';
+        projectJsonFileInput.click();
+      });
+    }
+    if (projectJsonFileInput) {
+      projectJsonFileInput.addEventListener('change', function () {
+        const file = projectJsonFileInput.files && projectJsonFileInput.files[0];
+        pushLoadJsonTrace('input-change', { hasFile: !!file, fileName: file ? file.name : null });
+        // #region agent log
+        fetch('http://127.0.0.1:7244/ingest/9f272141-40ac-4b30-81e8-0ca28c38c5a5',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0f2480'},body:JSON.stringify({sessionId:'0f2480',runId:'initial',hypothesisId:'H2',location:'board.html:file-input-change',message:'Project file input changed',data:{hasFile:!!file,fileName:file?file.name:null,fileSize:file?file.size:null},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
+        if (!file) return;
+        file
+          .text()
+          .then(function (text) {
+            let payload = null;
+            try {
+              payload = JSON.parse(text);
+            } catch (err) {
+              pushLoadJsonTrace('json-parse-failed', { error: err && err.message ? err.message : String(err) });
+              // #region agent log
+              fetch('http://127.0.0.1:7244/ingest/9f272141-40ac-4b30-81e8-0ca28c38c5a5',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0f2480'},body:JSON.stringify({sessionId:'0f2480',runId:'initial',hypothesisId:'H3',location:'board.html:json-parse',message:'JSON parse failed',data:{error:err&&err.message?err.message:String(err)},timestamp:Date.now()})}).catch(()=>{});
+              // #endregion
+              throw new Error('Invalid JSON file.');
+            }
+            pushLoadJsonTrace('json-parse-ok', { hasBoxes: !!(payload && Array.isArray(payload.boxes)), boxCount: payload && Array.isArray(payload.boxes) ? payload.boxes.length : null });
+            // #region agent log
+            fetch('http://127.0.0.1:7244/ingest/9f272141-40ac-4b30-81e8-0ca28c38c5a5',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0f2480'},body:JSON.stringify({sessionId:'0f2480',runId:'initial',hypothesisId:'H3',location:'board.html:json-parse',message:'JSON parse succeeded',data:{keys:payload&&typeof payload==='object'?Object.keys(payload).slice(0,8):[],hasBoxes:!!(payload&&Array.isArray(payload.boxes)),boxCount:payload&&Array.isArray(payload.boxes)?payload.boxes.length:null},timestamp:Date.now()})}).catch(()=>{});
+            // #endregion
+            if (!window.glyphBoardApi || typeof window.glyphBoardApi.loadProjectFromJsonData !== 'function') {
+              pushLoadJsonTrace('loader-missing', { hasApi: !!window.glyphBoardApi });
+              // #region agent log
+              fetch('http://127.0.0.1:7244/ingest/9f272141-40ac-4b30-81e8-0ca28c38c5a5',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0f2480'},body:JSON.stringify({sessionId:'0f2480',runId:'initial',hypothesisId:'H4',location:'board.html:loader-availability',message:'Project loader missing',data:{hasApi:!!window.glyphBoardApi,loaderType:window.glyphBoardApi?typeof window.glyphBoardApi.loadProjectFromJsonData:null},timestamp:Date.now()})}).catch(()=>{});
+              // #endregion
+              throw new Error('Project loader is not available on this page.');
+            }
+            return window.glyphBoardApi.loadProjectFromJsonData(payload);
+          })
+          .then(function (result) {
+            pushLoadJsonTrace('load-resolved', { result: result || null });
+            // #region agent log
+            fetch('http://127.0.0.1:7244/ingest/9f272141-40ac-4b30-81e8-0ca28c38c5a5',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0f2480'},body:JSON.stringify({sessionId:'0f2480',runId:'initial',hypothesisId:'H5',location:'board.html:load-project-result',message:'Project load promise resolved',data:{result:result||null},timestamp:Date.now()})}).catch(()=>{});
+            // #endregion
+          })
+          .catch(function (err) {
+            pushLoadJsonTrace('load-catch', { error: err && err.message ? err.message : String(err) });
+            // #region agent log
+            fetch('http://127.0.0.1:7244/ingest/9f272141-40ac-4b30-81e8-0ca28c38c5a5',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0f2480'},body:JSON.stringify({sessionId:'0f2480',runId:'initial',hypothesisId:'H5',location:'board.html:load-project-catch',message:'Project load flow threw error',data:{error:err&&err.message?err.message:String(err)},timestamp:Date.now()})}).catch(()=>{});
+            // #endregion
+            console.error('load-json-project', err);
+            window.alert(err && err.message ? err.message : 'Could not load JSON project.');
+          })
+          .finally(function () {
+            projectJsonFileInput.value = '';
+          });
+      });
+    }
+
+    if (menuSaveJsonProject) {
+      menuSaveJsonProject.addEventListener('click', function () {
+        closeTopMenu();
+        if (!window.glyphBoardApi || typeof window.glyphBoardApi.downloadProjectJson !== 'function') return;
+        window.glyphBoardApi.downloadProjectJson('glyphboard-project.json');
+      });
+    }
+
+    function setPanelCollapsed(panelEl, toggleBtn, collapsed) {
+      if (!panelEl || !toggleBtn) return;
+      panelEl.classList.toggle('collapsed', collapsed);
+      toggleBtn.textContent = collapsed ? '+' : '-';
+      toggleBtn.title = collapsed ? 'Expand panel' : 'Minimize panel';
+      toggleBtn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+      window.dispatchEvent(new Event('resize'));
+    }
+
+    function wirePanelToggle(panelEl, toggleBtn) {
+      if (!panelEl || !toggleBtn) return;
+      toggleBtn.addEventListener('click', function () {
+        const isCollapsed = panelEl.classList.contains('collapsed');
+        setPanelCollapsed(panelEl, toggleBtn, !isCollapsed);
+      });
+    }
+
+    function wireHorizontalResize(panelEl, resizerEl, side) {
+      if (!panelEl || !resizerEl) return;
+      let dragging = false;
+      let startX = 0;
+      let startWidth = 0;
+
+      function stopDrag() {
+        dragging = false;
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      }
+
+      resizerEl.addEventListener('mousedown', function (e) {
+        if (panelEl.classList.contains('collapsed')) return;
+        dragging = true;
+        startX = e.clientX;
+        startWidth = panelEl.getBoundingClientRect().width;
+        document.body.style.cursor = 'ew-resize';
+        document.body.style.userSelect = 'none';
+        e.preventDefault();
+      });
+
+      window.addEventListener('mousemove', function (e) {
+        if (!dragging) return;
+        const dx = e.clientX - startX;
+        const next = side === 'left' ? (startWidth + dx) : (startWidth - dx);
+        const minW = panelEl === detailPanelEl ? 180 : 220;
+        const maxW = Math.max(minW, Math.floor(window.innerWidth * 0.65));
+        const width = Math.max(minW, Math.min(maxW, next));
+        panelEl.style.width = width + 'px';
+        window.dispatchEvent(new Event('resize'));
+      });
+
+      window.addEventListener('mouseup', function () {
+        if (!dragging) return;
+        stopDrag();
+      });
+    }
+
+    wirePanelToggle(detailPanelEl, detailPanelToggle);
+    wirePanelToggle(searchPanelEl, searchPanelToggle);
+    wireHorizontalResize(detailPanelEl, detailPanelResizer, 'left');
+    wireHorizontalResize(searchPanelEl, searchPanelResizer, 'right');
+
+    const canvasShowTransliterationsEl = document.getElementById('canvas-show-transliterations');
+    const canvasShowLinksEl = document.getElementById('canvas-show-links');
+    const canvasShowAddressesEl = document.getElementById('canvas-show-addresses');
+
+    let nextGlyphId = 0;
+    for (const g of glyphs) {
+      if (typeof g.id === 'number' && g.id >= nextGlyphId) nextGlyphId = g.id + 1;
+    }
+
+    function updateGlyphCountBadge() {
+      const badge = document.getElementById('glyph-count-badge');
+      if (badge) badge.textContent = 'Glyphs on board: ' + allGlyphGroups.size;
+    }
+
+    function updateGlyphTranslitOverlay(group) {
+      if (!group || !group.glyphMeta) return;
+      const meta = group.glyphMeta;
+      const node = meta.translitTextNode;
+      if (!node) return;
+
+      const show = canvasShowTransliterationsEl ? !!canvasShowTransliterationsEl.checked : false;
+      const translit = (meta.transliteration || '').trim();
+
+      if (!translit) {
+        node.text('');
+        node.visible(false);
+        return;
+      }
+
+      node.text(translit);
+      node.fill(getConfidenceColor(meta.confidence));
+      node.visible(show);
+    }
+
+    function getBoardSize() {
+      const w = boardAreaEl ? boardAreaEl.clientWidth : window.innerWidth;
+      const h = boardAreaEl ? boardAreaEl.clientHeight : window.innerHeight;
+      return { width: Math.max(1, w), height: Math.max(1, h) };
+    }
+
+    const { width, height } = getBoardSize();
+
+    // BOARD_INTERACTION: stage.draggable is set false during marquee; restore on pointer up (finishMarquee / onWindowPointerUp).
+    const stage = new Konva.Stage({
+      container: 'container',
+      width,
+      height,
+      draggable: true,
+      x: width / 2,
+      y: height / 2,
+    });
+
+    const linkLayer = new Konva.Layer();
+    const glyphLayer = new Konva.Layer();
+    const uiLayer = new Konva.Layer();
+    stage.add(linkLayer);
+    stage.add(glyphLayer);
+    stage.add(uiLayer);
+
+    function updateLinksVisibility() {
+      const show = canvasShowLinksEl ? !!canvasShowLinksEl.checked : true;
+      linkLayer.visible(show);
+      linkLayer.batchDraw();
+    }
+    updateLinksVisibility();
+
+    const bgRect = new Konva.Rect({
+      x: -BG_EXTENT,
+      y: -BG_EXTENT,
+      width: BG_EXTENT * 2,
+      height: BG_EXTENT * 2,
+      fill: 'rgba(0,0,0,0.003)',
+      listening: true,
+    });
+
+    const marqueeRect = new Konva.Rect({
+      fill: 'rgba(80, 120, 220, 0.18)',
+      stroke: 'rgba(40, 80, 180, 0.95)',
+      strokeWidth: 1,
+      visible: false,
+      listening: false,
+    });
+
+    const selectionOutline = new Konva.Rect({
+      stroke: '#0a6ecf',
+      strokeWidth: 2,
+      fill: 'rgba(10, 110, 207, 0.06)',
+      visible: false,
+      listening: false,
+    });
+
+    const selectionDragHandle = new Konva.Rect({
+      fill: 'rgba(0, 0, 255, 0.01)',
+      visible: false,
+      listening: false,
+    });
+
+    glyphLayer.add(bgRect);
+    const rowAddressLabelsGroup = new Konva.Group({ listening: false });
+    glyphLayer.add(rowAddressLabelsGroup);
+    uiLayer.add(marqueeRect);
+    uiLayer.add(selectionOutline);
+    uiLayer.add(selectionDragHandle);
+
+    /*
+     * BOARD_INTERACTION — Hit testing (bottom → top): linkLayer lines do not listen.
+     * glyphLayer: bgRect listens (huge background); glyph groups sit above it; rowAddressLabelsGroup
+     * does not listen. uiLayer is on top: marqueeRect, selectionOutline, and selectionDragHandle do not
+     * listen (handle is visual only; hits pass through to glyphLayer). Move a multi-selection by
+     * dragging any selected glyph.
+     */
+    const allGlyphGroups = new Set();
+    const selectedGroups = new Set();
+    const glyphInstancesByAddress = new Map();
+    const linkPairs = new Set();
+    const linkLineByKey = new Map();
+
+    function sortedPair(a, b) {
+      return a < b ? [a, b] : [b, a];
+    }
+
+    function linkKey(a, b) {
+      const pair = sortedPair(a, b);
+      return pair[0] + '||' + pair[1];
+    }
+
+    function parseLinkKey(key) {
+      return key.split('||');
+    }
+
+    function getAddressFromGroup(group) {
+      return group && group.glyphMeta ? group.glyphMeta.address : null;
+    }
+
+    function getGroupAnchorPoint(group) {
+      if (!group || !group.glyphMeta || !group.glyphMeta.imageNode) return null;
+      const imageRect = group.glyphMeta.imageNode.getClientRect({ relativeTo: glyphLayer });
+      if (!imageRect || !Number.isFinite(imageRect.x) || !Number.isFinite(imageRect.y)) return null;
+      return {
+        x: imageRect.x + imageRect.width / 2,
+        y: imageRect.y + imageRect.height / 2,
+      };
+    }
+
+    function getAnchorForAddress(address) {
+      if (!address) return null;
+      const inst = glyphInstancesByAddress.get(address);
+      if (!inst || inst.size === 0) return null;
+      for (const group of inst) {
+        const pt = getGroupAnchorPoint(group);
+        if (pt) return pt;
+      }
+      return null;
+    }
+
+    function removeLinkByKey(key) {
+      if (!linkPairs.has(key)) return;
+      linkPairs.delete(key);
+      const line = linkLineByKey.get(key);
+      if (line) {
+        line.destroy();
+        linkLineByKey.delete(key);
+      }
+    }
+
+    function redrawLinkByKey(key) {
+      if (!linkPairs.has(key)) return;
+      const parts = parseLinkKey(key);
+      if (parts.length !== 2) return;
+      const a = parts[0];
+      const b = parts[1];
+      const pa = getAnchorForAddress(a);
+      const pb = getAnchorForAddress(b);
+      let line = linkLineByKey.get(key);
+      if (!pa || !pb) {
+        if (line) {
+          line.destroy();
+          linkLineByKey.delete(key);
+        }
+        return;
+      }
+      if (!line) {
+        line = new Konva.Line({
+          points: [pa.x, pa.y, pb.x, pb.y],
+          stroke: 'rgba(30, 30, 30, 0.5)',
+          strokeWidth: 2,
+          lineCap: 'round',
+          listening: false,
+        });
+        linkLayer.add(line);
+        linkLineByKey.set(key, line);
+      } else {
+        line.points([pa.x, pa.y, pb.x, pb.y]);
+      }
+    }
+
+    function redrawAllLinks() {
+      for (const key of linkPairs) redrawLinkByKey(key);
+      linkLayer.batchDraw();
+      updateRowAddressLabels();
+    }
+
+    function registerGlyphInstance(group) {
+      const address = getAddressFromGroup(group);
+      if (!address) return;
+      let setRef = glyphInstancesByAddress.get(address);
+      if (!setRef) {
+        setRef = new Set();
+        glyphInstancesByAddress.set(address, setRef);
+      }
+      setRef.add(group);
+      redrawAllLinks();
+    }
+
+    function unregisterGlyphInstance(group) {
+      const address = getAddressFromGroup(group);
+      if (!address) return;
+      const setRef = glyphInstancesByAddress.get(address);
+      if (!setRef) return;
+      setRef.delete(group);
+      if (setRef.size > 0) {
+        redrawAllLinks();
+        return;
+      }
+      glyphInstancesByAddress.delete(address);
+      const toRemove = [];
+      for (const key of linkPairs) {
+        const parts = parseLinkKey(key);
+        if (parts[0] === address || parts[1] === address) toRemove.push(key);
+      }
+      for (const key of toRemove) removeLinkByKey(key);
+      linkLayer.batchDraw();
+    }
+
+    function getSelectedAddresses() {
+      const out = new Set();
+      for (const group of selectedGroups) {
+        const address = getAddressFromGroup(group);
+        if (address) out.add(address);
+      }
+      return out;
+    }
+
+    function connectSelectedGlyphAddresses() {
+      const addresses = Array.from(getSelectedAddresses());
+      if (addresses.length < 2) return;
+      for (let i = 0; i < addresses.length; i++) {
+        for (let j = i + 1; j < addresses.length; j++) {
+          linkPairs.add(linkKey(addresses[i], addresses[j]));
+        }
+      }
+      redrawAllLinks();
+    }
+
+    function deleteLinksTouchingSelectedGlyphs() {
+      const addresses = getSelectedAddresses();
+      if (addresses.size === 0) return;
+      const toRemove = [];
+      for (const key of linkPairs) {
+        const parts = parseLinkKey(key);
+        if (addresses.has(parts[0]) || addresses.has(parts[1])) toRemove.push(key);
+      }
+      for (const key of toRemove) removeLinkByKey(key);
+      linkLayer.batchDraw();
+    }
+
+    function deleteLinksWithinSelectedGlyphs() {
+      const addresses = getSelectedAddresses();
+      if (addresses.size < 2) return;
+      const toRemove = [];
+      for (const key of linkPairs) {
+        const parts = parseLinkKey(key);
+        if (addresses.has(parts[0]) && addresses.has(parts[1])) toRemove.push(key);
+      }
+      for (const key of toRemove) removeLinkByKey(key);
+      linkLayer.batchDraw();
+    }
+
+    function buildLinksPayloadForSortSelection(selectedAddressSet) {
+      const links = {};
+      for (const addr of selectedAddressSet) {
+        links[addr] = [];
+      }
+      for (const key of linkPairs) {
+        const parts = parseLinkKey(key);
+        if (parts.length !== 2) continue;
+        const a = parts[0];
+        const b = parts[1];
+        if (!selectedAddressSet.has(a) || !selectedAddressSet.has(b)) continue;
+        links[a].push(b);
+        links[b].push(a);
+      }
+      return links;
+    }
+
+    let transliterationSignStats = [];
+    let transliterationSignCountByValue = new Map();
+
+    function splitTransliterationSigns(text) {
+      if (text == null) return [];
+      return String(text)
+        .split('.')
+        .map(function (part) { return part.trim(); })
+        .filter(function (part) { return !!part; });
+    }
+
+    function replaceSignInTransliterationString(transliteration, oldSign, newSign) {
+      const signs = splitTransliterationSigns(transliteration);
+      let changed = false;
+      for (let i = 0; i < signs.length; i++) {
+        if (signs[i] === oldSign) {
+          signs[i] = newSign;
+          changed = true;
+        }
+      }
+      return { changed: changed, transliteration: signs.join('.') };
+    }
+
+    function updateSignEditHints() {
+      if (!signEditOldInputEl || !signEditOldCountEl || !signEditNewInputEl || !signEditWarningEl) return;
+      const oldSign = signEditOldInputEl.value.trim();
+      const newSign = signEditNewInputEl.value.trim();
+      const oldCount = transliterationSignCountByValue.get(oldSign) || 0;
+      signEditOldCountEl.textContent = 'Occurrences: ' + oldCount;
+      if (!newSign) {
+        signEditWarningEl.textContent = '';
+        return;
+      }
+      const newCount = transliterationSignCountByValue.get(newSign) || 0;
+      signEditWarningEl.textContent = newCount > 0 ? ('Warning: "' + newSign + '" already exists ' + newCount + ' time' + (newCount === 1 ? '' : 's') + '.') : '';
+    }
+
+    function renderSignEditChoices() {
+      if (!signEditSelectEl || !signEditOldListEl) return;
+      signEditSelectEl.textContent = '';
+      signEditOldListEl.textContent = '';
+      for (const row of transliterationSignStats) {
+        const opt = document.createElement('option');
+        opt.value = row.sign;
+        opt.textContent = row.sign + ' (' + row.count + ')';
+        signEditSelectEl.appendChild(opt);
+        const d = document.createElement('option');
+        d.value = row.sign;
+        signEditOldListEl.appendChild(d);
+      }
+    }
+
+    async function loadTransliterationSignStats() {
+      const resp = await fetch(API_TRANSLITERATION_SIGN_STATS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ limit: 500 }),
+      });
+      if (!resp.ok) throw new Error('Could not load transliteration signs (HTTP ' + resp.status + ').');
+      const data = await resp.json();
+      if (!data || !data.ok || !Array.isArray(data.signs)) throw new Error('Could not load transliteration signs.');
+      transliterationSignStats = data.signs;
+      transliterationSignCountByValue = new Map();
+      for (const row of transliterationSignStats) {
+        transliterationSignCountByValue.set(row.sign, Number(row.count) || 0);
+      }
+      renderSignEditChoices();
+    }
+
+    async function openTransliterationSignDialog() {
+      if (!signEditDialogEl) return;
+      if (signEditStatusEl) signEditStatusEl.textContent = '';
+      if (signEditWarningEl) signEditWarningEl.textContent = '';
+      if (signEditOldCountEl) signEditOldCountEl.textContent = 'Occurrences: 0';
+      if (signEditOldInputEl) signEditOldInputEl.value = '';
+      if (signEditNewInputEl) signEditNewInputEl.value = '';
+      if (signEditSelectEl) signEditSelectEl.textContent = '';
+      if (signEditOldListEl) signEditOldListEl.textContent = '';
+      try {
+        await loadTransliterationSignStats();
+      } catch (err) {
+        if (signEditStatusEl) {
+          signEditStatusEl.textContent = err && err.message ? err.message : 'Failed to load signs.';
+        }
+      }
+      if (typeof signEditDialogEl.showModal === 'function') signEditDialogEl.showModal();
+      if (signEditOldInputEl) signEditOldInputEl.focus();
+    }
+
+    async function applyTransliterationSignReplacement() {
+      if (!signEditOldInputEl || !signEditNewInputEl) return;
+      const oldSign = signEditOldInputEl.value.trim();
+      const newSign = signEditNewInputEl.value.trim();
+      if (signEditStatusEl) signEditStatusEl.textContent = '';
+
+      if (!oldSign) {
+        if (signEditStatusEl) signEditStatusEl.textContent = 'Pick a sign to replace.';
+        return;
+      }
+      const oldCount = transliterationSignCountByValue.get(oldSign) || 0;
+      if (oldCount <= 0) {
+        if (signEditStatusEl) signEditStatusEl.textContent = '"' + oldSign + '" was not found.';
+        return;
+      }
+      if (!newSign) {
+        if (signEditStatusEl) signEditStatusEl.textContent = 'Enter a new sign value.';
+        return;
+      }
+      if (newSign === oldSign) {
+        if (signEditStatusEl) signEditStatusEl.textContent = 'New sign must be different.';
+        return;
+      }
+      const newCount = transliterationSignCountByValue.get(newSign) || 0;
+      if (newCount > 0) {
+        const ok = window.confirm('"' + newSign + '" already exists ' + newCount + ' time' + (newCount === 1 ? '' : 's') + '. Continue?');
+        if (!ok) return;
+      }
+
+      let payload = null;
+      try {
+        const resp = await fetch(API_TRANSLITERATION_SIGN_REPLACE_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ old_sign: oldSign, new_sign: newSign }),
+        });
+        if (!resp.ok) {
+          let text = '';
+          try { text = await resp.text(); } catch (_) {}
+          throw new Error(text || ('Replace failed (HTTP ' + resp.status + ').'));
+        }
+        payload = await resp.json();
+      } catch (err) {
+        if (signEditStatusEl) signEditStatusEl.textContent = err && err.message ? err.message : 'Replace failed.';
+        return;
+      }
+      if (!payload || !payload.ok) {
+        if (signEditStatusEl) signEditStatusEl.textContent = 'Replace failed.';
+        return;
+      }
+
+      const changedAddressSet = new Set(payload.changed_addresses || []);
+      for (const g of allGlyphGroups) {
+        if (!g || !g.glyphMeta) continue;
+        const address = g.glyphMeta.address;
+        if (!changedAddressSet.has(address)) continue;
+        const replaced = replaceSignInTransliterationString(g.glyphMeta.transliteration, oldSign, newSign);
+        if (!replaced.changed) continue;
+        g.glyphMeta.transliteration = replaced.transliteration;
+        updateGlyphTranslitOverlay(g);
+      }
+      if (detailGroupRef && detailGroupRef.glyphMeta && changedAddressSet.has(detailGroupRef.glyphMeta.address)) {
+        updateDetailPanel(detailGroupRef);
+      }
+      glyphLayer.batchDraw();
+      if (typeof signEditDialogEl.close === 'function') signEditDialogEl.close();
+      window.alert(
+        'Updated sign "' + oldSign + '" -> "' + newSign + '".\n' +
+        'Addresses changed: ' + (payload.changed_address_count || 0) + '\n' +
+        'Occurrences replaced: ' + (payload.replaced_occurrences || 0)
+      );
+    }
+
+    /*
+     * BOARD_INTERACTION — Marquee invariants: any path that sets marqueeActive and fills
+     * marqueePrevGlyphDraggable must end in finishMarquee() on pointer up (including early/abort
+     * branches) so stage.draggable(true) is restored and every glyph’s draggable() is restored
+     * from the map. Otherwise panning and glyph drag stay broken.
+     */
+    let marqueeActive = false;
+    let marqueeStart = null;
+    // When starting marquee selection, we temporarily disable Konva dragging on
+    // glyph groups to prevent camera panning / node dragging while drawing.
+    let marqueePrevGlyphDraggable = null;
+    /** Throttle debug log when marquee mousemove sees null pointer position (H5). */
+    let marqueeLoggedNullPos = false;
+
+    let multiDragPrimary = null;
+    let multiDragSnapshot = null;
+
+    let pointerDownClient = null;
+    let pointerDownTarget = null;
+    let pointerDownOnBg = false;
+
+    let detailGroupRef = null;
+
+    const detailImgEl = document.getElementById('detail-img');
+    const detailImageNameEl = document.getElementById('detail-image-name');
+    const detailThumbWrapEl = document.getElementById('detail-thumb-wrap');
+    const detailTransliterationInput = document.getElementById('detail-transliteration-input');
+    const detailModeSelect = document.getElementById('detail-mode-select');
+    const detailLabelsInput = document.getElementById('detail-labels-input');
+    const detailCommentsInput = document.getElementById('detail-comments-input');
+    const detailConfidenceButtons = Array.from(document.querySelectorAll('#detail-confidence-buttons .detail-confidence-btn'));
+    const detailSaveStatusEl = document.getElementById('detail-save-status');
+
+    function setDetailGlyphEditorEnabled(enabled) {
+      const editor = document.getElementById('detail-editor');
+      if (editor) editor.classList.toggle('detail-editor-disabled', !enabled);
+      if (detailModeSelect) detailModeSelect.disabled = !enabled;
+      if (detailTransliterationInput) detailTransliterationInput.disabled = !enabled;
+      if (detailLabelsInput) detailLabelsInput.disabled = !enabled;
+      if (detailCommentsInput) detailCommentsInput.disabled = !enabled;
+      if (canvasShowTransliterationsEl) canvasShowTransliterationsEl.disabled = !enabled;
+      if (canvasShowLinksEl) canvasShowLinksEl.disabled = !enabled;
+      if (canvasShowAddressesEl) canvasShowAddressesEl.disabled = !enabled;
+      for (const btn of detailConfidenceButtons) {
+        btn.disabled = !enabled;
+      }
+    }
+
+    let detailConfidenceValue = 4;
+    let modeFocusRestoreTarget = null;
+
+    function currentMode() {
+      if (!detailModeSelect || !detailModeSelect.value) return 'Insertion';
+      return detailModeSelect.value;
+    }
+
+    function isTransliterationMode() {
+      return currentMode() === 'Transliteration';
+    }
+
+    function isAlignmentMode() {
+      return currentMode() === 'Alignment';
+    }
+
+    function shouldAllowGlyphDragging() {
+      return !isTransliterationMode();
+    }
+
+    function setAllGlyphsDraggable() {
+      const enabled = shouldAllowGlyphDragging();
+      for (const g of allGlyphGroups) g.draggable(enabled);
+    }
+
+    function coerceSingleSelectionForTransliterationMode() {
+      if (!isTransliterationMode() || selectedGroups.size <= 1) return;
+      let keep = detailGroupRef && selectedGroups.has(detailGroupRef) ? detailGroupRef : null;
+      if (!keep) {
+        for (const g of selectedGroups) {
+          keep = g;
+          break;
+        }
+      }
+      selectedGroups.clear();
+      if (keep) selectedGroups.add(keep);
+      updateSelectionChrome();
+      if (keep) updateDetailPanel(keep);
+      glyphLayer.batchDraw();
+    }
+
+    function isDetailTextField(el) {
+      return el === detailTransliterationInput || el === detailLabelsInput || el === detailCommentsInput;
+    }
+
+    function preserveModeInputFocusTarget() {
+      if (!isTransliterationMode()) return;
+      const active = document.activeElement;
+      if (isDetailTextField(active)) modeFocusRestoreTarget = active;
+    }
+
+    function restoreModeInputFocus() {
+      if (!isTransliterationMode()) return;
+      const target = modeFocusRestoreTarget || detailTransliterationInput;
+      if (!target || typeof target.focus !== 'function') return;
+      setTimeout(function () {
+        try {
+          target.focus();
+        } catch (_) {}
+      }, 0);
+    }
+
+    function hideDetailSaveError() {
+      if (!detailSaveStatusEl) return;
+      detailSaveStatusEl.textContent = '';
+      detailSaveStatusEl.hidden = true;
+    }
+
+    function showDetailSaveError(message) {
+      if (!detailSaveStatusEl) return;
+      detailSaveStatusEl.textContent = message || 'Save failed.';
+      detailSaveStatusEl.hidden = false;
+    }
+
+    function normalizeConfidence(value) {
+      if (value === undefined || value === null) return 4;
+      const n = Number(value);
+      if (!Number.isFinite(n)) return 4;
+      return Math.max(0, Math.min(4, Math.trunc(n)));
+    }
+
+    function setConfidenceActive(value) {
+      detailConfidenceValue = value;
+      for (const btn of detailConfidenceButtons) {
+        const v = Number(btn.dataset.value);
+        btn.classList.toggle('active', v === value);
+      }
+    }
+
+    function clearConfidenceActive() {
+      for (const btn of detailConfidenceButtons) {
+        btn.classList.remove('active');
+      }
+    }
+
+    async function persistDetailGlyphMeta() {
+      if (!detailGroupRef || !detailGroupRef.glyphMeta) return;
+      const meta = detailGroupRef.glyphMeta;
+      const address = meta.address;
+      if (!address) return;
+
+      const transliteration = detailTransliterationInput ? detailTransliterationInput.value : '';
+      const labelsStr = detailLabelsInput ? detailLabelsInput.value : '';
+      const commentsStr = detailCommentsInput ? detailCommentsInput.value : '';
+      const confidence = detailConfidenceValue;
+
+      const groupAtStart = detailGroupRef;
+      const transliterationAtStart = transliteration;
+      const labelsStrAtStart = labelsStr;
+      const commentsStrAtStart = commentsStr;
+      const confidenceAtStart = confidence;
+
+      try {
+        const resp = await fetch(API_GLYPH_META_UPDATE_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            address,
+            transliteration: transliterationAtStart,
+            labels_str: labelsStrAtStart,
+            comments_str: commentsStrAtStart,
+            confidence: confidenceAtStart,
+          }),
+        });
+        if (!resp.ok) {
+          console.error('glyph-meta/update failed', resp.status);
+          let msg = 'Save failed (HTTP ' + resp.status + ').';
+          try {
+            const t = await resp.text();
+            if (t && t.length < 200) msg = 'Save failed: ' + t;
+          } catch (_) {}
+          if (detailGroupRef === groupAtStart) showDetailSaveError(msg);
+          return;
+        }
+        let data;
+        try {
+          data = await resp.json();
+        } catch (parseErr) {
+          console.error('glyph-meta/update invalid JSON', parseErr);
+          if (detailGroupRef === groupAtStart) showDetailSaveError('Save failed: invalid server response.');
+          return;
+        }
+        if (!data || !data.ok) {
+          if (detailGroupRef === groupAtStart) showDetailSaveError('Save failed.');
+          return;
+        }
+
+        // Only update the panel if the user is still looking at the same glyph.
+        if (detailGroupRef !== groupAtStart) return;
+
+        hideDetailSaveError();
+
+        const updated = data.glyphMeta || {};
+        detailGroupRef.glyphMeta.transliteration = updated.transliteration;
+        detailGroupRef.glyphMeta.labels_str = updated.labels_str;
+        detailGroupRef.glyphMeta.comments_str = updated.comments_str;
+        detailGroupRef.glyphMeta.confidence = updated.confidence;
+        if (detailTransliterationInput) detailTransliterationInput.value = updated.transliteration || '';
+        if (detailLabelsInput) detailLabelsInput.value = updated.labels_str || '';
+        if (detailCommentsInput) detailCommentsInput.value = updated.comments_str || '';
+        setConfidenceActive(normalizeConfidence(updated.confidence));
+        if (canvasShowTransliterationsEl && canvasShowTransliterationsEl.checked) {
+          updateGlyphTranslitOverlay(detailGroupRef);
+          glyphLayer.batchDraw();
+        }
+      } catch (err) {
+        console.error('glyph-meta/update error', err);
+        if (detailGroupRef === groupAtStart) {
+          showDetailSaveError('Save failed: network or server error.');
+        }
+      }
+    }
+
+    function updateDetailPanel(group) {
+      if (!detailImgEl || !detailImageNameEl) return;
+      if (!group || !allGlyphGroups.has(group)) {
+        detailGroupRef = null;
+        setDetailGlyphEditorEnabled(false);
+        detailImgEl.hidden = true;
+        detailImgEl.removeAttribute('src');
+        detailImgEl.alt = '';
+        if (detailThumbWrapEl) detailThumbWrapEl.classList.add('detail-thumb-empty');
+        detailImageNameEl.textContent = 'Click a glyph on the board to preview';
+        detailImageNameEl.classList.add('detail-image-name-placeholder');
+        if (detailTransliterationInput) detailTransliterationInput.value = '';
+        if (detailLabelsInput) detailLabelsInput.value = '';
+        if (detailCommentsInput) detailCommentsInput.value = '';
+        clearConfidenceActive();
+        hideDetailSaveError();
+        return;
+      }
+      const meta = group.glyphMeta;
+      if (!meta) return;
+      detailGroupRef = group;
+      hideDetailSaveError();
+      setDetailGlyphEditorEnabled(true);
+      detailImgEl.hidden = false;
+      if (detailThumbWrapEl) detailThumbWrapEl.classList.remove('detail-thumb-empty');
+      detailImageNameEl.classList.remove('detail-image-name-placeholder');
+      detailImgEl.alt = meta.name || 'Glyph';
+      detailImgEl.src = meta.url;
+      detailImageNameEl.textContent = meta.name || '';
+      if (detailTransliterationInput) detailTransliterationInput.value = meta.transliteration || '';
+      if (detailLabelsInput) detailLabelsInput.value = meta.labels_str || '';
+      if (detailCommentsInput) detailCommentsInput.value = meta.comments_str || '';
+      setConfidenceActive(normalizeConfidence(meta.confidence));
+    }
+
+    function attachDetailInputSaveHandlers(el) {
+      if (!el) return;
+      el.addEventListener('input', function () {
+        hideDetailSaveError();
+      });
+      el.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          persistDetailGlyphMeta();
+        }
+      });
+      el.addEventListener('blur', function () {
+        // Save on blur so short edits still persist.
+        persistDetailGlyphMeta();
+      });
+    }
+    attachDetailInputSaveHandlers(detailTransliterationInput);
+    attachDetailInputSaveHandlers(detailLabelsInput);
+    attachDetailInputSaveHandlers(detailCommentsInput);
+
+    if (detailModeSelect) {
+      detailModeSelect.addEventListener('change', function () {
+        setAllGlyphsDraggable();
+        coerceSingleSelectionForTransliterationMode();
+      });
+    }
+
+    if (detailTransliterationInput) {
+      detailTransliterationInput.addEventListener('input', function () {
+        if (!detailGroupRef || !detailGroupRef.glyphMeta) return;
+        detailGroupRef.glyphMeta.transliteration = detailTransliterationInput.value || '';
+        updateGlyphTranslitOverlay(detailGroupRef);
+        glyphLayer.batchDraw();
+      });
+    }
+
+    for (const btn of detailConfidenceButtons) {
+      btn.addEventListener('click', function () {
+        if (btn.disabled) return;
+        hideDetailSaveError();
+        const v = Number(btn.dataset.value);
+        if (!Number.isFinite(v)) return;
+        setConfidenceActive(v);
+        persistDetailGlyphMeta();
+      });
+    }
+
+    updateDetailPanel(null);
+
+    function refreshDetailPanelIfLive() {
+      if (detailGroupRef && allGlyphGroups.has(detailGroupRef)) {
+        updateDetailPanel(detailGroupRef);
+      }
+    }
+
+    function findGlyphGroup(node) {
+      let n = node;
+      while (n) {
+        if (allGlyphGroups.has(n)) return n;
+        n = n.getParent();
+      }
+      return null;
+    }
+
+    function groupBoxInGlyphLayer(group) {
+      return group.getClientRect({ relativeTo: glyphLayer });
+    }
+
+    function rectsOverlap(a, b) {
+      return !(
+        a.x + a.width < b.x ||
+        b.x + b.width < a.x ||
+        a.y + a.height < b.y ||
+        b.y + b.height < a.y
+      );
+    }
+
+    /** Image bounds in glyphLayer coords (matches step placement; excludes translit text below). */
+    function glyphImageRectInGlyphLayer(group) {
+      const meta = group && group.glyphMeta;
+      if (meta && meta.imageNode && typeof meta.imageNode.getClientRect === 'function') {
+        return meta.imageNode.getClientRect({ relativeTo: glyphLayer });
+      }
+      return groupBoxInGlyphLayer(group);
+    }
+
+    function medianNumeric(values) {
+      const nums = values.filter(function (v) {
+        return typeof v === 'number' && Number.isFinite(v);
+      });
+      if (nums.length === 0) return null;
+      nums.sort(function (a, b) {
+        return a - b;
+      });
+      const mid = Math.floor(nums.length / 2);
+      if (nums.length % 2 === 1) return nums[mid];
+      return (nums[mid - 1] + nums[mid]) / 2;
+    }
+
+    /**
+     * @param {Iterable} groups Konva groups
+     * @param {'horizontal'|'vertical'} mode horizontal → same median y; vertical → same median x
+     */
+    function projectedImageRectsIfAligned(groups, mode) {
+      const list = Array.from(groups);
+      const ys = list.map(function (g) {
+        return g.y();
+      });
+      const xs = list.map(function (g) {
+        return g.x();
+      });
+      const medY = medianNumeric(ys);
+      const medX = medianNumeric(xs);
+      const map = new Map();
+      for (const g of list) {
+        const r = glyphImageRectInGlyphLayer(g);
+        const gx = g.x();
+        const gy = g.y();
+        let nx = gx;
+        let ny = gy;
+        if (mode === 'horizontal') {
+          if (medY != null) ny = medY;
+        } else {
+          if (medX != null) nx = medX;
+        }
+        const dx = nx - gx;
+        const dy = ny - gy;
+        map.set(g, { x: r.x + dx, y: r.y + dy, width: r.width, height: r.height });
+      }
+      return map;
+    }
+
+    function alignmentWouldCauseOverlap(groups, mode) {
+      const selected = Array.from(groups);
+      if (selected.length === 0) return false;
+      const selectedSet = new Set(selected);
+      const projected = projectedImageRectsIfAligned(groups, mode);
+      const rects = selected.map(function (g) {
+        return projected.get(g);
+      });
+      for (let i = 0; i < rects.length; i++) {
+        for (let j = i + 1; j < rects.length; j++) {
+          if (rectsOverlap(rects[i], rects[j])) return true;
+        }
+      }
+      for (const g of selected) {
+        const r = projected.get(g);
+        for (const other of allGlyphGroups) {
+          if (selectedSet.has(other)) continue;
+          const ro = glyphImageRectInGlyphLayer(other);
+          if (rectsOverlap(r, ro)) return true;
+        }
+      }
+      return false;
+    }
+
+    /** Line id prefix before glyph index, matching KohauCode.parse_address_components (e.g. Kr1-006 → Kr1, Xa3-001 → Xa3). */
+    function lineAddressFromGlyphAddress(addr) {
+      if (!addr || typeof addr !== 'string') return null;
+      const mX = /^X([a-hA-H])(\d+)-(\d+)$/.exec(addr.trim());
+      if (mX) return 'X' + mX[1].toLowerCase() + mX[2];
+      const mS = /^([A-Za-z])([arbv])(\d+)-(\d+)$/.exec(addr.trim());
+      if (mS) return mS[1].toUpperCase() + mS[2].toLowerCase() + mS[3];
+      const dash = addr.indexOf('-');
+      if (dash > 0) return addr.slice(0, dash);
+      return null;
+    }
+
+    function rectsVerticallyOverlap(ra, rb) {
+      const a1 = ra.y;
+      const a2 = ra.y + ra.height;
+      const b1 = rb.y;
+      const b2 = rb.y + rb.height;
+      return !(a2 < b1 || b2 < a1);
+    }
+
+    /** Cluster glyph image rects into rows by transitive vertical overlap. */
+    function clusterGlyphRowsByVerticalOverlap(items) {
+      const n = items.length;
+      if (n === 0) return [];
+      const parent = [];
+      for (let i = 0; i < n; i++) parent[i] = i;
+      function find(i) {
+        if (parent[i] !== i) parent[i] = find(parent[i]);
+        return parent[i];
+      }
+      function union(i, j) {
+        const pi = find(i);
+        const pj = find(j);
+        if (pi !== pj) parent[pi] = pj;
+      }
+      for (let i = 0; i < n; i++) {
+        for (let j = i + 1; j < n; j++) {
+          if (rectsVerticallyOverlap(items[i].r, items[j].r)) union(i, j);
+        }
+      }
+      const clusters = new Map();
+      for (let i = 0; i < n; i++) {
+        const root = find(i);
+        if (!clusters.has(root)) clusters.set(root, []);
+        clusters.get(root).push(items[i]);
+      }
+      return Array.from(clusters.values());
+    }
+
+    /**
+     * Within a vertical band, glyphs that only align on Y but are far apart on X (e.g. a stray
+     * glyph on the left vs. the main line) must get separate line labels. Break into runs when
+     * the horizontal gap between consecutive rects (sorted by x) exceeds this.
+     */
+    const ROW_ADDRESS_HORIZONTAL_RUN_BREAK = 80;
+
+    function splitClusterIntoHorizontalRuns(cluster) {
+      if (!cluster || cluster.length === 0) return [];
+      const sorted = cluster.slice().sort(function (a, b) {
+        return a.r.x - b.r.x;
+      });
+      const runs = [];
+      let run = [sorted[0]];
+      for (let i = 1; i < sorted.length; i++) {
+        const prev = sorted[i - 1];
+        const curr = sorted[i];
+        const prevRight = prev.r.x + prev.r.width;
+        const gap = curr.r.x - prevRight;
+        if (gap > ROW_ADDRESS_HORIZONTAL_RUN_BREAK) {
+          runs.push(run);
+          run = [curr];
+        } else {
+          run.push(curr);
+        }
+      }
+      runs.push(run);
+      return runs;
+    }
+
+    const ROW_ADDRESS_LABEL_GAP = 15;
+    const ROW_ADDRESS_FONT_SIZE = 30;
+
+    function updateRowAddressLabels() {
+      rowAddressLabelsGroup.destroyChildren();
+      const show = canvasShowAddressesEl ? !!canvasShowAddressesEl.checked : false;
+      rowAddressLabelsGroup.visible(show);
+      if (!show) {
+        glyphLayer.batchDraw();
+        return;
+      }
+      const groups = Array.from(allGlyphGroups);
+      if (groups.length === 0) {
+        glyphLayer.batchDraw();
+        return;
+      }
+      const items = [];
+      for (const g of groups) {
+        items.push({ g: g, r: glyphImageRectInGlyphLayer(g) });
+      }
+      const clusters = clusterGlyphRowsByVerticalOverlap(items);
+      for (const cluster of clusters) {
+        const runs = splitClusterIntoHorizontalRuns(cluster);
+        for (let r = 0; r < runs.length; r++) {
+          const run = runs[r];
+          const leftmost = run[0];
+          const addr = leftmost.g.glyphMeta && leftmost.g.glyphMeta.address;
+          const lineText = lineAddressFromGlyphAddress(addr);
+          if (!lineText) continue;
+          const firstRect = leftmost.r;
+          const textNode = new Konva.Text({
+            text: lineText,
+            fontSize: ROW_ADDRESS_FONT_SIZE,
+            fontFamily: 'Segoe UI, system-ui, sans-serif',
+            fill: '#0a6ecf',
+            listening: false,
+          });
+          const tw = textNode.width();
+          const th = textNode.height();
+          const labelLeft = firstRect.x - ROW_ADDRESS_LABEL_GAP - tw;
+          const labelTop = firstRect.y + (firstRect.height - th) / 2;
+          const labelRect = { x: labelLeft, y: labelTop, width: tw, height: th };
+          let blocked = false;
+          for (const it of items) {
+            if (rectsOverlap(labelRect, it.r)) {
+              blocked = true;
+              break;
+            }
+          }
+          if (blocked) continue;
+          textNode.position({ x: labelLeft, y: labelTop });
+          rowAddressLabelsGroup.add(textNode);
+        }
+      }
+      glyphLayer.batchDraw();
+    }
+
+    /** Placement rect for a step API item; uses render_width/height when present (same as server layout). */
+    function stepGlyphItemRect(item) {
+      if (!item) return null;
+      const x = item.x;
+      const y = item.y;
+      if (typeof x !== 'number' || !Number.isFinite(x) || typeof y !== 'number' || !Number.isFinite(y)) return null;
+      const w =
+        typeof item.render_width === 'number' && Number.isFinite(item.render_width) ? item.render_width : 120;
+      const h =
+        typeof item.render_height === 'number' && Number.isFinite(item.render_height) ? item.render_height : 120;
+      return { x: x, y: y, width: w, height: h };
+    }
+
+    /**
+     * Keeps step items that fit without overlapping existing glyph images or each other (API order).
+     * Skips only placements that would collide; others are still added.
+     */
+    function filterStepGlyphsWithoutCollision(stepGlyphList) {
+      const out = [];
+      const committedRects = [];
+      for (const item of stepGlyphList) {
+        if (!item || !item.image_url || !item.address) continue;
+        const pr = stepGlyphItemRect(item);
+        if (!pr) continue;
+        let overlaps = false;
+        for (const g of allGlyphGroups) {
+          if (rectsOverlap(pr, glyphImageRectInGlyphLayer(g))) {
+            overlaps = true;
+            break;
+          }
+        }
+        if (overlaps) continue;
+        for (const cr of committedRects) {
+          if (rectsOverlap(pr, cr)) {
+            overlaps = true;
+            break;
+          }
+        }
+        if (overlaps) continue;
+        out.push(item);
+        committedRects.push(pr);
+      }
+      return out;
+    }
+
+    function computeUnion() {
+      if (selectedGroups.size === 0) return null;
+      let minX = Infinity;
+      let minY = Infinity;
+      let maxX = -Infinity;
+      let maxY = -Infinity;
+      for (const g of selectedGroups) {
+        const r = groupBoxInGlyphLayer(g);
+        minX = Math.min(minX, r.x);
+        minY = Math.min(minY, r.y);
+        maxX = Math.max(maxX, r.x + r.width);
+        maxY = Math.max(maxY, r.y + r.height);
+      }
+      return {
+        x: minX,
+        y: minY,
+        width: maxX - minX,
+        height: maxY - minY,
+      };
+    }
+
+    function updateSelectionChrome() {
+      if (selectedGroups.size === 0) {
+        selectionOutline.visible(false);
+        selectionDragHandle.visible(false);
+        selectionDragHandle.listening(false);
+        uiLayer.batchDraw();
+        return;
+      }
+      const u = computeUnion();
+      if (!u || u.width <= 0 || u.height <= 0) {
+        selectionOutline.visible(false);
+        selectionDragHandle.visible(false);
+        selectionDragHandle.listening(false);
+        uiLayer.batchDraw();
+        return;
+      }
+      const pad = 4;
+      const attrs = {
+        x: u.x - pad,
+        y: u.y - pad,
+        width: u.width + pad * 2,
+        height: u.height + pad * 2,
+        visible: true,
+      };
+      selectionOutline.setAttrs(attrs);
+      selectionDragHandle.setAttrs(Object.assign({}, attrs, { listening: false }));
+      selectionDragHandle.visible(true);
+      selectionDragHandle.listening(false);
+      uiLayer.batchDraw();
+    }
+
+    /** Vertical gap between stacked rows; matches Tkinter Align Rows toolbar (`row_gap=25`). */
+    const ALIGN_SELECTION_INTO_ROWS_GAP_PX = 25;
+
+    /**
+     * Cluster selection by transitive vertical overlap of image rects, unify each row's group y to max y,
+     * stack rows so each row's top sits at previous row's image bottom + gap (Tkinter align_selection_into_rows).
+     */
+    function alignSelectionIntoRows(rowGap) {
+      if (selectedGroups.size === 0) return;
+      const gap =
+        typeof rowGap === 'number' && Number.isFinite(rowGap) ? rowGap : ALIGN_SELECTION_INTO_ROWS_GAP_PX;
+      const items = Array.from(selectedGroups).map(function (g) {
+        return { g: g, r: glyphImageRectInGlyphLayer(g) };
+      });
+      if (items.length === 0) return;
+
+      const rows = clusterGlyphRowsByVerticalOverlap(items);
+      function rowAvgY(row) {
+        let s = 0;
+        for (let i = 0; i < row.length; i++) s += row[i].g.y();
+        return s / row.length;
+      }
+      rows.sort(function (a, b) {
+        return rowAvgY(a) - rowAvgY(b);
+      });
+
+      function rowImageBottom(row) {
+        let mx = -Infinity;
+        for (let i = 0; i < row.length; i++) {
+          const r = glyphImageRectInGlyphLayer(row[i].g);
+          mx = Math.max(mx, r.y + r.height);
+        }
+        return mx;
+      }
+
+      const first = rows[0];
+      let firstY = -Infinity;
+      for (let i = 0; i < first.length; i++) firstY = Math.max(firstY, first[i].g.y());
+      for (let i = 0; i < first.length; i++) {
+        const g = first[i].g;
+        g.position({ x: g.x(), y: firstY });
+        updateGlyphTranslitOverlay(g);
+      }
+      let prevBottom = rowImageBottom(first);
+
+      for (let ri = 1; ri < rows.length; ri++) {
+        const row = rows[ri];
+        let rowY = -Infinity;
+        for (let i = 0; i < row.length; i++) rowY = Math.max(rowY, row[i].g.y());
+        for (let i = 0; i < row.length; i++) {
+          const g = row[i].g;
+          g.position({ x: g.x(), y: rowY });
+          updateGlyphTranslitOverlay(g);
+        }
+        const curTop = row[0].g.y();
+        const targetTop = prevBottom + gap;
+        const dy = targetTop - curTop;
+        for (let i = 0; i < row.length; i++) {
+          const g = row[i].g;
+          g.position({ x: g.x(), y: g.y() + dy });
+          updateGlyphTranslitOverlay(g);
+        }
+        prevBottom = rowImageBottom(row);
+      }
+
+      redrawAllLinks();
+      updateSelectionChrome();
+      updateRowAddressLabels();
+      glyphLayer.batchDraw();
+      uiLayer.batchDraw();
+      refreshDetailPanelIfLive();
+    }
+
+    function applyMedianAlignSelection(mode) {
+      if (selectedGroups.size === 0) return;
+      const orient = mode === 'vertical' ? 'vertical' : 'horizontal';
+      if (alignmentWouldCauseOverlap(selectedGroups, orient)) {
+        const ok = window.confirm(
+          'Aligning the selection may cause glyphs to overlap. Would you like to proceed?'
+        );
+        if (!ok) return;
+      }
+      const list = Array.from(selectedGroups);
+      const ys = list.map(function (g) {
+        return g.y();
+      });
+      const xs = list.map(function (g) {
+        return g.x();
+      });
+      const medY = medianNumeric(ys);
+      const medX = medianNumeric(xs);
+      for (const g of list) {
+        if (orient === 'horizontal') {
+          if (medY != null) g.position({ x: g.x(), y: medY });
+        } else {
+          if (medX != null) g.position({ x: medX, y: g.y() });
+        }
+        updateGlyphTranslitOverlay(g);
+      }
+      redrawAllLinks();
+      updateSelectionChrome();
+      updateRowAddressLabels();
+      glyphLayer.batchDraw();
+      uiLayer.batchDraw();
+      refreshDetailPanelIfLive();
+    }
+
+    let sortPendingOrientation = 'horizontal';
+
+    function getSortLayoutMaxRowWidthPx() {
+      const sc = stage.scaleX() || 1;
+      return Math.max(200, stage.width() / sc);
+    }
+
+    function openSortSelectionDialog(orientation) {
+      sortPendingOrientation = orientation === 'vertical' ? 'vertical' : 'horizontal';
+      if (sortSelectionTitleEl) {
+        sortSelectionTitleEl.textContent =
+          sortPendingOrientation === 'horizontal' ? 'Sort selection horizontally' : 'Sort selection vertically';
+      }
+      if (sortSelectionHintEl) {
+        sortSelectionHintEl.textContent = 'Choose how to order the selected glyphs, then click Apply.';
+      }
+      if (sortSelectionDialogEl && typeof sortSelectionDialogEl.showModal === 'function') {
+        sortSelectionDialogEl.showModal();
+      }
+    }
+
+    function runSortLayoutForSelection(orientation, criterion) {
+      if (selectedGroups.size === 0) return;
+      const groups = Array.from(selectedGroups);
+      const addresses = [];
+      for (const g of groups) {
+        const addr = getAddressFromGroup(g);
+        if (addr) addresses.push(addr);
+      }
+      if (addresses.length === 0) return;
+      const u = computeUnion();
+      if (!u) return;
+      const originX = u.x;
+      const originY = u.y;
+      const selectedAddrs = new Set(addresses);
+      const crit =
+        criterion && String(criterion).trim()
+          ? String(criterion).trim()
+          : sortDialogCriterionSelectEl && sortDialogCriterionSelectEl.value
+            ? sortDialogCriterionSelectEl.value
+            : 'Order';
+      const linksPayload = buildLinksPayloadForSortSelection(selectedAddrs);
+      const body = {
+        addresses: addresses,
+        criterion: crit,
+        orientation: orientation,
+        links: linksPayload,
+      };
+      if (orientation === 'horizontal') {
+        body.max_row_width = getSortLayoutMaxRowWidthPx();
+      }
+      fetch(API_SORT_LAYOUT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+        .then(function (resp) {
+          if (!resp.ok) {
+            return resp.text().then(function (t) {
+              throw new Error(t || String(resp.status));
+            });
+          }
+          return resp.json();
+        })
+        .then(function (data) {
+          if (!data || !data.ok || !Array.isArray(data.glyphs)) return;
+          const queues = new Map();
+          for (const g of groups) {
+            const a = getAddressFromGroup(g);
+            if (!a) continue;
+            if (!queues.has(a)) queues.set(a, []);
+            queues.get(a).push(g);
+          }
+          for (const item of data.glyphs) {
+            if (!item || !item.address) continue;
+            const q = queues.get(item.address);
+            if (!q || q.length === 0) continue;
+            const g = q.shift();
+            const rw =
+              typeof item.render_width === 'number' && Number.isFinite(item.render_width)
+                ? item.render_width
+                : null;
+            const rh =
+              typeof item.render_height === 'number' && Number.isFinite(item.render_height)
+                ? item.render_height
+                : null;
+            if (g.glyphMeta && g.glyphMeta.imageNode && rw != null && rh != null) {
+              g.glyphMeta.imageNode.width(rw);
+              g.glyphMeta.imageNode.height(rh);
+              if (g.glyphMeta.translitTextNode) {
+                g.glyphMeta.translitTextNode.y(rh + 2);
+                g.glyphMeta.translitTextNode.width(rw);
+              }
+            }
+            g.position({ x: originX + item.x, y: originY + item.y });
+            updateGlyphTranslitOverlay(g);
+          }
+          redrawAllLinks();
+          updateSelectionChrome();
+          glyphLayer.batchDraw();
+          uiLayer.batchDraw();
+          refreshDetailPanelIfLive();
+        })
+        .catch(function (err) {
+          console.error('sort-layout', err);
+        });
+    }
+
+    function clearSelection() {
+      selectedGroups.clear();
+      updateDetailPanel(null);
+      updateSelectionChrome();
+      glyphLayer.batchDraw();
+      uiLayer.batchDraw();
+    }
+
+    function deleteSelectedGlyphs() {
+      if (selectedGroups.size === 0) return;
+      const toRemove = Array.from(selectedGroups);
+      selectedGroups.clear();
+      multiDragPrimary = null;
+      multiDragSnapshot = null;
+      const killedDetail = detailGroupRef && toRemove.indexOf(detailGroupRef) !== -1;
+      for (const g of toRemove) {
+        unregisterGlyphInstance(g);
+        allGlyphGroups.delete(g);
+        g.destroy();
+      }
+      if (killedDetail) updateDetailPanel(null);
+      updateSelectionChrome();
+      updateRowAddressLabels();
+      glyphLayer.batchDraw();
+      uiLayer.batchDraw();
+      updateGlyphCountBadge();
+    }
+
+    function removeDuplicateGlyphsInSelection() {
+      if (selectedGroups.size === 0) {
+        if (typeof window.alert === 'function') window.alert('Select one or more glyphs on the board first.');
+        return;
+      }
+      const seenByAddress = new Map();
+      const toRemove = [];
+      for (const g of selectedGroups) {
+        const addr = getAddressFromGroup(g);
+        if (!addr) continue;
+        if (seenByAddress.has(addr)) toRemove.push(g);
+        else seenByAddress.set(addr, g);
+      }
+      if (toRemove.length === 0) return;
+      multiDragPrimary = null;
+      multiDragSnapshot = null;
+      const killedDetail = detailGroupRef && toRemove.indexOf(detailGroupRef) !== -1;
+      for (const g of toRemove) {
+        selectedGroups.delete(g);
+        unregisterGlyphInstance(g);
+        allGlyphGroups.delete(g);
+        g.destroy();
+      }
+      if (killedDetail) updateDetailPanel(null);
+      updateSelectionChrome();
+      updateRowAddressLabels();
+      glyphLayer.batchDraw();
+      uiLayer.batchDraw();
+      updateGlyphCountBadge();
+    }
+
+    if (menuDeselectGlyphs) {
+      menuDeselectGlyphs.addEventListener('click', function () {
+        closeTopMenu();
+        clearSelection();
+      });
+    }
+    if (menuRemoveDuplicateGlyphsInSelection) {
+      menuRemoveDuplicateGlyphsInSelection.addEventListener('click', function () {
+        closeTopMenu();
+        removeDuplicateGlyphsInSelection();
+      });
+    }
+    if (menuDeleteLinksTouchingSelection) {
+      menuDeleteLinksTouchingSelection.addEventListener('click', function () {
+        closeTopMenu();
+        deleteLinksTouchingSelectedGlyphs();
+      });
+    }
+    if (menuDeleteLinksWithinSelection) {
+      menuDeleteLinksWithinSelection.addEventListener('click', function () {
+        closeTopMenu();
+        deleteLinksWithinSelectedGlyphs();
+      });
+    }
+    if (menuSortSelectionHorizontal) {
+      menuSortSelectionHorizontal.addEventListener('click', function () {
+        closeTopMenu();
+        openSortSelectionDialog('horizontal');
+      });
+    }
+    if (menuSortSelectionVertical) {
+      menuSortSelectionVertical.addEventListener('click', function () {
+        closeTopMenu();
+        openSortSelectionDialog('vertical');
+      });
+    }
+    if (menuAlignSelectionMedianY) {
+      menuAlignSelectionMedianY.addEventListener('click', function () {
+        closeTopMenu();
+        if (selectedGroups.size === 0) {
+          if (typeof window.alert === 'function') window.alert('Select one or more glyphs on the board first.');
+          return;
+        }
+        applyMedianAlignSelection('horizontal');
+      });
+    }
+    if (menuAlignSelectionMedianX) {
+      menuAlignSelectionMedianX.addEventListener('click', function () {
+        closeTopMenu();
+        if (selectedGroups.size === 0) {
+          if (typeof window.alert === 'function') window.alert('Select one or more glyphs on the board first.');
+          return;
+        }
+        applyMedianAlignSelection('vertical');
+      });
+    }
+    if (menuAlignSelectionIntoRows) {
+      menuAlignSelectionIntoRows.addEventListener('click', function () {
+        closeTopMenu();
+        if (selectedGroups.size === 0) {
+          if (typeof window.alert === 'function') window.alert('Select one or more glyphs on the board first.');
+          return;
+        }
+        alignSelectionIntoRows(ALIGN_SELECTION_INTO_ROWS_GAP_PX);
+      });
+    }
+    if (menuSignFrequencyCatalog) {
+      menuSignFrequencyCatalog.addEventListener('click', function () {
+        closeTopMenu();
+        window.open("{% url 'sign_catalog' %}", '_blank');
+      });
+    }
+    if (sortSelectionCancelBtn && sortSelectionDialogEl) {
+      sortSelectionCancelBtn.addEventListener('click', function () {
+        if (typeof sortSelectionDialogEl.close === 'function') sortSelectionDialogEl.close();
+      });
+    }
+    if (sortSelectionApplyBtn) {
+      sortSelectionApplyBtn.addEventListener('click', function () {
+        if (selectedGroups.size === 0) {
+          if (typeof window.alert === 'function') window.alert('Select one or more glyphs on the board first.');
+          return;
+        }
+        const crit = sortDialogCriterionSelectEl && sortDialogCriterionSelectEl.value ? sortDialogCriterionSelectEl.value : 'Order';
+        if (sortSelectionDialogEl && typeof sortSelectionDialogEl.close === 'function') sortSelectionDialogEl.close();
+        runSortLayoutForSelection(sortPendingOrientation, crit);
+      });
+    }
+    if (menuEditTransliterationSign) {
+      menuEditTransliterationSign.addEventListener('click', function () {
+        closeTopMenu();
+        openTransliterationSignDialog();
+      });
+    }
+    if (signEditSelectEl && signEditOldInputEl) {
+      signEditSelectEl.addEventListener('change', function () {
+        signEditOldInputEl.value = signEditSelectEl.value || '';
+        updateSignEditHints();
+      });
+      signEditSelectEl.addEventListener('dblclick', function () {
+        signEditOldInputEl.value = signEditSelectEl.value || '';
+        updateSignEditHints();
+        if (signEditNewInputEl) signEditNewInputEl.focus();
+      });
+    }
+    if (signEditOldInputEl) {
+      signEditOldInputEl.addEventListener('input', updateSignEditHints);
+      signEditOldInputEl.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          if (signEditNewInputEl) signEditNewInputEl.focus();
+        }
+      });
+    }
+    if (signEditNewInputEl) {
+      signEditNewInputEl.addEventListener('input', updateSignEditHints);
+      signEditNewInputEl.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          applyTransliterationSignReplacement();
+        }
+      });
+    }
+    if (signEditCancelBtn && signEditDialogEl) {
+      signEditCancelBtn.addEventListener('click', function () {
+        signEditDialogEl.close();
+      });
+    }
+    if (signEditApplyBtn) {
+      signEditApplyBtn.addEventListener('click', function () {
+        applyTransliterationSignReplacement();
+      });
+    }
+
+    /*
+     * BOARD_INTERACTION — Marquee pipeline: start runs when konvaEvtIsMarqueeModifier (Ctrl or Cmd).
+     * Transliteration mode aborts start. finishMarquee calls applyMarqueeSelection when the box is
+     * non-degenerate (mw > 0 && mh > 0).
+     */
+    function applyMarqueeSelection(marqueeBox) {
+      if (isTransliterationMode()) return;
+      let firstHit = null;
+      for (const g of allGlyphGroups) {
+        const box = groupBoxInGlyphLayer(g);
+        if (rectsOverlap(marqueeBox, box)) {
+          if (!firstHit) firstHit = g;
+          selectedGroups.add(g);
+          g.moveToTop();
+        }
+      }
+      if (firstHit) updateDetailPanel(firstHit);
+      updateSelectionChrome();
+      glyphLayer.batchDraw();
+    }
+
+    function finishMarquee() {
+      marqueeLoggedNullPos = false;
+      if (!marqueeActive || !marqueeStart) {
+        marqueeActive = false;
+        marqueeRect.visible(false);
+        if (marqueePrevGlyphDraggable) {
+          for (const [g, prev] of marqueePrevGlyphDraggable) g.draggable(!!prev);
+          marqueePrevGlyphDraggable = null;
+        }
+        stage.draggable(true);
+        uiLayer.batchDraw();
+        // #region agent log
+        var _g1 = allGlyphGroups.size > 0 ? Array.from(allGlyphGroups)[0] : null;
+        dbgSession9('H1', 'board.html:finishMarquee', 'early cleanup path', {
+          stageDraggable: stage.draggable(),
+          sampleGlyphDraggable: _g1 ? _g1.draggable() : null,
+          marqueeActive: marqueeActive,
+        });
+        // #endregion
+        return;
+      }
+      const p = glyphLayer.getRelativePointerPosition();
+      const end = p || marqueeStart;
+      const mx = Math.min(marqueeStart.x, end.x);
+      const my = Math.min(marqueeStart.y, end.y);
+      const mw = Math.abs(end.x - marqueeStart.x);
+      const mh = Math.abs(end.y - marqueeStart.y);
+      marqueeActive = false;
+      marqueeRect.visible(false);
+      if (mw > 0 && mh > 0) {
+        applyMarqueeSelection({ x: mx, y: my, width: mw, height: mh });
+      }
+      if (marqueePrevGlyphDraggable) {
+        for (const [g, prev] of marqueePrevGlyphDraggable) g.draggable(!!prev);
+        marqueePrevGlyphDraggable = null;
+      }
+      stage.draggable(true);
+      uiLayer.batchDraw();
+      // #region agent log
+      var _g2 = allGlyphGroups.size > 0 ? Array.from(allGlyphGroups)[0] : null;
+      dbgSession9('H1', 'board.html:finishMarquee', 'normal finish', {
+        stageDraggable: stage.draggable(),
+        sampleGlyphDraggable: _g2 ? _g2.draggable() : null,
+        mw: mw,
+        mh: mh,
+        marqueeActive: marqueeActive,
+      });
+      // #endregion
+    }
+
+    /** If pointerup is lost (tab switch, OS gesture, devtools), restore stage/glyph drag state (H2/H3). */
+    function abortPointerInteractionIfNeeded(reason) {
+      if (!marqueeActive) return;
+      // #region agent log
+      dbgSession9('H3', 'board.html:abortPointer', String(reason), {
+        marqueeActive: marqueeActive,
+        stageDraggable: stage.draggable(),
+        runId: 'debug2',
+      });
+      // #endregion
+      finishMarquee();
+    }
+
+    function startMarqueeFromPointerEvent(e) {
+      // Called only when konvaEvtIsMarqueeModifier(e.evt) is true (Ctrl or Cmd).
+      if (isTransliterationMode()) {
+        // #region agent log
+        dbgSession9('H4', 'board.html:startMarquee', 'marquee blocked transliteration', {});
+        // #endregion
+        return;
+      }
+      if (!e || !e.evt) return;
+      e.evt.preventDefault();
+      e.cancelBubble = true;
+
+      // Temporarily disable dragging while we draw the marquee rectangle.
+      if (!marqueePrevGlyphDraggable) {
+        marqueePrevGlyphDraggable = new Map();
+        for (const g of allGlyphGroups) {
+          marqueePrevGlyphDraggable.set(g, g.draggable());
+          g.draggable(false);
+        }
+      }
+
+      stage.draggable(false);
+      marqueeActive = true;
+      marqueeLoggedNullPos = false;
+      const p = glyphLayer.getRelativePointerPosition();
+      marqueeStart = p ? { x: p.x, y: p.y } : { x: 0, y: 0 };
+      marqueeRect.setAttrs({
+        x: marqueeStart.x,
+        y: marqueeStart.y,
+        width: 0,
+        height: 0,
+        visible: true,
+      });
+      uiLayer.batchDraw();
+      // #region agent log
+      var _g0 = allGlyphGroups.size > 0 ? Array.from(allGlyphGroups)[0] : null;
+      dbgSession9('H2', 'board.html:startMarquee', 'marquee started', {
+        glyphCount: allGlyphGroups.size,
+        stageDraggable: stage.draggable(),
+        sampleGlyphDraggable: _g0 ? _g0.draggable() : null,
+        marqueeActive: marqueeActive,
+        runId: 'debug2',
+        ctrlKey: !!(e.evt && e.evt.ctrlKey),
+        metaKey: !!(e.evt && e.evt.metaKey),
+      });
+      // #endregion
+    }
+
+    function clientPointFromKonvaEvt(evt) {
+      const t = evt.touches && evt.touches[0];
+      if (t) return { x: t.clientX, y: t.clientY };
+      return { x: evt.clientX, y: evt.clientY };
+    }
+
+    function recordPointerDown(e, konvaNode) {
+      pointerDownTarget = konvaNode != null ? konvaNode : e.target;
+      pointerDownClient = clientPointFromKonvaEvt(e.evt);
+    }
+
+    /*
+     * BOARD_INTERACTION — bgRect: cancelBubble only when (marquee modifier) OR (there is a selection),
+     * so plain drag on empty board pans the Stage. With a selection, cancelBubble keeps click-to-deselect
+     * from turning into a pan. Alt+drag without Ctrl/Cmd always skips cancelBubble for pan.
+     * selectionDragHandle does not listen; it never receives pointerDownOnBg.
+     */
+    bgRect.on('mousedown touchstart', function (e) {
+      preserveModeInputFocusTarget();
+      const ev = e.evt;
+      const marqueeMod = konvaEvtIsMarqueeModifier(ev);
+      const allowStagePanFromBg = !!(ev && ev.altKey && !marqueeMod);
+      if (!allowStagePanFromBg && (marqueeMod || selectedGroups.size > 0)) {
+        e.cancelBubble = true;
+      }
+      // #region agent log
+      dbgSession9('H3', 'board.html:bgRect', 'bg mousedown', {
+        allowStagePanFromBg: allowStagePanFromBg,
+        cancelBubbleSet: !allowStagePanFromBg && (marqueeMod || selectedGroups.size > 0),
+        altKey: !!(ev && ev.altKey),
+        marqueeMod: marqueeMod,
+        selectionSize: selectedGroups.size,
+        stageDraggable: stage.draggable(),
+        marqueeActiveStale: marqueeActive,
+        runId: 'debug2',
+      });
+      // #endregion
+      recordPointerDown(e, bgRect);
+      pointerDownOnBg = true;
+      if (!marqueeMod) return;
+      startMarqueeFromPointerEvent(e);
+    });
+
+    stage.on('mousedown touchstart', function (e) {
+      var t = e.target;
+      var cn = t && typeof t.getClassName === 'function' ? t.getClassName() : '';
+      // #region agent log
+      dbgSession9('H1', 'board.html:stage:mousedown', 'stage received mousedown', {
+        className: cn,
+        isBg: t === bgRect,
+        isHandle: t === selectionDragHandle,
+        stageDraggable: stage.draggable(),
+        selSize: selectedGroups.size,
+        marqueeActive: marqueeActive,
+        marqueeMod: e.evt ? konvaEvtIsMarqueeModifier(e.evt) : false,
+        runId: 'debug2',
+      });
+      // #endregion
+    });
+
+    function syncKonvaPointerFromEvent(evt) {
+      if (typeof stage.setPointersPositions === 'function') {
+        stage.setPointersPositions(evt);
+      }
+    }
+
+    window.addEventListener('mousemove', function (evt) {
+      syncKonvaPointerFromEvent(evt);
+      if (marqueeActive && marqueeStart) {
+        const p = glyphLayer.getRelativePointerPosition();
+        if (!p) {
+          if (!marqueeLoggedNullPos) {
+            marqueeLoggedNullPos = true;
+            // #region agent log
+            dbgSession9('H5', 'board.html:mousemove', 'marquee null getRelativePointerPosition', {
+              runId: 'debug2',
+            });
+            // #endregion
+          }
+          return;
+        }
+        const mx = Math.min(marqueeStart.x, p.x);
+        const my = Math.min(marqueeStart.y, p.y);
+        const mw = Math.abs(p.x - marqueeStart.x);
+        const mh = Math.abs(p.y - marqueeStart.y);
+        marqueeRect.setAttrs({ x: mx, y: my, width: mw, height: mh });
+        uiLayer.batchDraw();
+        return;
+      }
+    });
+
+    /*
+     * BOARD_INTERACTION — onWindowPointerUp branch order: finish marquee first, then generic
+     * click/deselect (pointerDownOnBg, findGlyphGroup).
+     * Reordering can skip cleanup or clear selection at the wrong time.
+     */
+    function onWindowPointerUp(evt) {
+      syncKonvaPointerFromEvent(evt);
+      // #region agent log
+      dbgSession9('H5', 'board.html:onWindowPointerUp', 'pointerup entry', {
+        marqueeActive: marqueeActive,
+        stageDraggable: stage.draggable(),
+      });
+      // #endregion
+      if (marqueeActive) {
+        finishMarquee();
+        return;
+      }
+      if (!pointerDownClient || !pointerDownTarget) return;
+      const cx = evt.clientX !== undefined ? evt.clientX : (evt.changedTouches && evt.changedTouches[0] && evt.changedTouches[0].clientX);
+      const cy = evt.clientY !== undefined ? evt.clientY : (evt.changedTouches && evt.changedTouches[0] && evt.changedTouches[0].clientY);
+      if (cx === undefined || cy === undefined) return;
+      const dist = Math.hypot(cx - pointerDownClient.x, cy - pointerDownClient.y);
+      if (dist >= CLICK_THRESHOLD_PX) return;
+
+      if (pointerDownOnBg) {
+        if (selectedGroups.size > 0) {
+          clearSelection();
+        }
+        restoreModeInputFocus();
+        return;
+      }
+
+      const g = findGlyphGroup(pointerDownTarget);
+      if (g) {
+        if (isTransliterationMode()) {
+          selectedGroups.clear();
+        }
+        selectedGroups.add(g);
+        g.moveToTop();
+        updateDetailPanel(g);
+        updateSelectionChrome();
+        glyphLayer.batchDraw();
+        restoreModeInputFocus();
+      }
+    }
+
+    window.addEventListener('mouseup', onWindowPointerUp);
+    window.addEventListener('touchend', onWindowPointerUp, { passive: false });
+    window.addEventListener('pointerup', onWindowPointerUp);
+    window.addEventListener('pointercancel', onWindowPointerUp);
+    window.addEventListener('blur', function () {
+      abortPointerInteractionIfNeeded('window-blur');
+    });
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'hidden') {
+        abortPointerInteractionIfNeeded('visibility-hidden');
+      }
+    });
+
+    window.addEventListener('touchmove', function (evt) {
+      if (!marqueeActive) return;
+      evt.preventDefault();
+      const t = evt.touches[0] || evt.changedTouches[0];
+      if (t) syncKonvaPointerFromEvent(t);
+      if (marqueeActive && marqueeStart) {
+        const p = glyphLayer.getRelativePointerPosition();
+        if (!p) {
+          if (!marqueeLoggedNullPos) {
+            marqueeLoggedNullPos = true;
+            // #region agent log
+            dbgSession9('H5', 'board.html:touchmove', 'marquee null getRelativePointerPosition', {
+              runId: 'debug2',
+            });
+            // #endregion
+          }
+          return;
+        }
+        const mx = Math.min(marqueeStart.x, p.x);
+        const my = Math.min(marqueeStart.y, p.y);
+        const mw = Math.abs(p.x - marqueeStart.x);
+        const mh = Math.abs(p.y - marqueeStart.y);
+        marqueeRect.setAttrs({ x: mx, y: my, width: mw, height: mh });
+        uiLayer.batchDraw();
+        return;
+      }
+    }, { passive: false });
+
+    function addGlyphFromBoardData(glyph, pos, onReady) {
+      const img = new window.Image();
+      img.onload = function () {
+        let groupRef = null;
+        try {
+          const maxDim = 120;
+          const natH = img.height > 0 ? img.height : 1;
+          // Scale by height only so all glyphs share a consistent height.
+          const scale = maxDim / natH;
+          const renderedWidth = img.width * scale;
+          const renderedHeight = natH * scale; // equals maxDim
+
+          const group = new Konva.Group({
+            x: pos ? pos.x : glyph.x,
+            y: pos ? pos.y : glyph.y,
+            draggable: shouldAllowGlyphDragging(),
+            rotation: glyph.rotation != null ? glyph.rotation : 0,
+          });
+          groupRef = group;
+
+          const imageNode = new Konva.Image({
+            image: img,
+            width: renderedWidth,
+            height: renderedHeight,
+          });
+
+          group.add(imageNode);
+          allGlyphGroups.add(group);
+
+          const translitTextNode = new Konva.Text({
+            x: 0,
+            y: renderedHeight + 2,
+            width: renderedWidth,
+            text: '',
+            fontSize: 12,
+            fill: getConfidenceColor(glyph.confidence),
+            align: 'center',
+            listening: false,
+            visible: false,
+          });
+          group.add(translitTextNode);
+
+          group.glyphMeta = {
+            id: glyph.id,
+            name: glyph.name,
+            address: glyph.address,
+            url: glyph.url,
+            transliteration: glyph.transliteration,
+            confidence: glyph.confidence,
+            labels_str: glyph.labels_str,
+            comments_str: glyph.comments_str,
+            alternates_str: glyph.alternates_str,
+            corpus_filepath: glyph.corpus_filepath != null ? glyph.corpus_filepath : null,
+            imageNode,
+            translitTextNode,
+            imgElement: img,
+          };
+          registerGlyphInstance(group);
+
+          updateGlyphTranslitOverlay(group);
+
+          group.on('mousedown touchstart', function (e) {
+            preserveModeInputFocusTarget();
+            // #region agent log
+            if (marqueeActive) {
+              dbgSession9('H2', 'board.html:glyphMousedown', 'glyph down while marqueeActive', {
+                stageDraggable: stage.draggable(),
+              });
+            }
+            // #endregion
+            recordPointerDown(e, group);
+            pointerDownOnBg = false;
+            if (e.evt && konvaEvtIsMarqueeModifier(e.evt)) {
+              startMarqueeFromPointerEvent(e);
+              return;
+            }
+            e.cancelBubble = true;
+          });
+
+          group.on('dragstart', function () {
+            // #region agent log
+            dbgSession9('H4', 'board.html:glyphDragstart', 'dragstart', {
+              translit: isTransliterationMode(),
+              groupDraggable: group.draggable(),
+            });
+            // #endregion
+            if (isTransliterationMode()) {
+              group.stopDrag();
+              return;
+            }
+            multiDragPrimary = group;
+            if (selectedGroups.has(group)) {
+              multiDragSnapshot = new Map();
+              for (const g of selectedGroups) {
+                multiDragSnapshot.set(g, { x: g.x(), y: g.y() });
+              }
+            } else {
+              clearSelection();
+              selectedGroups.add(group);
+              updateDetailPanel(group);
+              updateSelectionChrome();
+              multiDragSnapshot = new Map([[group, { x: group.x(), y: group.y() }]]);
+            }
+            group.moveToTop();
+            if (selectedGroups.has(group)) {
+              for (const g of selectedGroups) {
+                if (g !== group) g.moveToTop();
+              }
+            }
+            glyphLayer.batchDraw();
+          });
+
+          group.on('dragmove', function () {
+            if (isTransliterationMode()) return;
+            if (!multiDragSnapshot || !multiDragPrimary || multiDragPrimary !== group) return;
+            const align = isAlignmentMode();
+            const shouldConstrain = selectedGroups.has(group) && (selectedGroups.size > 1 || align);
+            if (shouldConstrain) {
+              const startSelf = multiDragSnapshot.get(group);
+              if (!startSelf) return;
+
+              let dx = group.x() - startSelf.x;
+              let dy = group.y() - startSelf.y;
+              if (align) {
+                if (Math.abs(dx) > Math.abs(dy)) {
+                  dy = 0;
+                } else {
+                  dx = 0;
+                }
+              }
+
+              for (const [g, start] of multiDragSnapshot) {
+                // In non-alignment mode we preserve the previous behavior:
+                // Konva already moved the primary glyph; we only move the others.
+                if (!align && g === group) continue;
+                g.position({ x: start.x + dx, y: start.y + dy });
+              }
+            }
+            updateSelectionChrome();
+            refreshDetailPanelIfLive();
+            redrawAllLinks();
+          });
+
+          group.on('dragend', function () {
+            if (isTransliterationMode()) return;
+            multiDragPrimary = null;
+            multiDragSnapshot = null;
+            updateSelectionChrome();
+            refreshDetailPanelIfLive();
+            redrawAllLinks();
+            glyphLayer.batchDraw();
+          });
+
+          group.on('mouseenter', function () {
+            document.body.style.cursor = 'move';
+            imageNode.stroke('#bbb');
+            imageNode.strokeWidth(1);
+            glyphLayer.batchDraw();
+          });
+
+          group.on('mouseleave', function () {
+            document.body.style.cursor = 'default';
+            imageNode.stroke(null);
+            imageNode.strokeWidth(0);
+            glyphLayer.batchDraw();
+          });
+
+          glyphLayer.add(group);
+          glyphLayer.batchDraw();
+        } finally {
+          if (onReady) onReady(groupRef);
+        }
+      };
+      img.onerror = function () {
+        if (onReady) onReady(null);
+      };
+      img.src = glyph.url;
+    }
+
+    glyphs.forEach((glyph) => {
+      addGlyphFromBoardData(glyph);
+    });
+
+    if (canvasShowTransliterationsEl) {
+      canvasShowTransliterationsEl.addEventListener('change', function () {
+        for (const g of allGlyphGroups) {
+          updateGlyphTranslitOverlay(g);
+        }
+        glyphLayer.batchDraw();
+      });
+    }
+
+    if (canvasShowLinksEl) {
+      canvasShowLinksEl.addEventListener('change', function () {
+        updateLinksVisibility();
+      });
+    }
+
+    if (canvasShowAddressesEl) {
+      canvasShowAddressesEl.addEventListener('change', function () {
+        updateRowAddressLabels();
+      });
+    }
+
+    function computeBoardLoadOrigin() {
+      const padding = 30;
+      let maxBottom = 0;
+      for (const g of allGlyphGroups) {
+        const r = groupBoxInGlyphLayer(g);
+        maxBottom = Math.max(maxBottom, r.y + r.height + padding);
+      }
+      return { x: 0, y: maxBottom };
+    }
+
+    const glyphTemplateByAddress = new Map();
+    for (const srcGlyph of glyphs) {
+      if (!srcGlyph || !srcGlyph.address || !srcGlyph.url) continue;
+      if (!glyphTemplateByAddress.has(srcGlyph.address)) {
+        glyphTemplateByAddress.set(srcGlyph.address, srcGlyph);
+      }
+    }
+
+    function clearBoardForProjectLoad() {
+      clearSelection();
+      multiDragPrimary = null;
+      multiDragSnapshot = null;
+      const toRemove = Array.from(allGlyphGroups);
+      for (const g of toRemove) {
+        unregisterGlyphInstance(g);
+        allGlyphGroups.delete(g);
+        g.destroy();
+      }
+      for (const line of linkLineByKey.values()) {
+        line.destroy();
+      }
+      linkLineByKey.clear();
+      linkPairs.clear();
+      updateDetailPanel(null);
+      updateRowAddressLabels();
+      glyphLayer.batchDraw();
+      linkLayer.batchDraw();
+      uiLayer.batchDraw();
+      updateGlyphCountBadge();
+    }
+
+    function isFiniteNumber(value) {
+      return typeof value === 'number' && Number.isFinite(value);
+    }
+
+    function hydrateGlyphTemplatesByAddress(addresses) {
+      if (!Array.isArray(addresses) || addresses.length === 0) return Promise.resolve(0);
+      const missing = [];
+      for (const addr of addresses) {
+        if (!addr || glyphTemplateByAddress.has(addr)) continue;
+        missing.push(addr);
+      }
+      if (missing.length === 0) return Promise.resolve(0);
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/9f272141-40ac-4b30-81e8-0ca28c38c5a5',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0f2480'},body:JSON.stringify({sessionId:'0f2480',runId:'post-fix',hypothesisId:'H6',location:'board.html:hydrate-start',message:'Hydrating missing glyph templates',data:{missingCount:missing.length},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
+      return fetch(API_GLYPHS_BY_ADDRESS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ addresses: missing }),
+      })
+        .then(function (resp) {
+          if (!resp.ok) throw new Error('Address resolver failed (HTTP ' + resp.status + ').');
+          return resp.json();
+        })
+        .then(function (data) {
+          const rows = data && Array.isArray(data.glyphs) ? data.glyphs : [];
+          for (const row of rows) {
+            if (!row || !row.address || !row.image_url) continue;
+            glyphTemplateByAddress.set(row.address, {
+              address: row.address,
+              name: row.name || (row.address + '.png'),
+              transliteration: row.transliteration,
+              confidence: normalizeConfidence(row.confidence),
+              labels_str: row.labels_str,
+              comments_str: row.comments_str,
+              alternates_str: row.alternates_str,
+              corpus_filepath: row.corpus_filepath != null ? row.corpus_filepath : null,
+              url: row.image_url,
+            });
+          }
+          // #region agent log
+          fetch('http://127.0.0.1:7244/ingest/9f272141-40ac-4b30-81e8-0ca28c38c5a5',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0f2480'},body:JSON.stringify({sessionId:'0f2480',runId:'post-fix',hypothesisId:'H6',location:'board.html:hydrate-done',message:'Hydration completed',data:{resolvedCount:rows.length,templateCount:glyphTemplateByAddress.size},timestamp:Date.now()})}).catch(()=>{});
+          // #endregion
+          return rows.length;
+        });
+    }
+
+    function buildProjectJsonPayload() {
+      const linksByAddress = new Map();
+      for (const key of linkPairs) {
+        const parts = parseLinkKey(key);
+        if (parts.length !== 2) continue;
+        const a = parts[0];
+        const b = parts[1];
+        if (!a || !b) continue;
+        let setA = linksByAddress.get(a);
+        if (!setA) {
+          setA = new Set();
+          linksByAddress.set(a, setA);
+        }
+        setA.add(b);
+        let setB = linksByAddress.get(b);
+        if (!setB) {
+          setB = new Set();
+          linksByAddress.set(b, setB);
+        }
+        setB.add(a);
+      }
+
+      const boxes = [];
+      for (const group of allGlyphGroups) {
+        const meta = group.glyphMeta;
+        if (!meta || !meta.address) continue;
+        const x = group.x();
+        const y = group.y();
+        if (!isFiniteNumber(x) || !isFiniteNumber(y)) continue;
+        if (!isFiniteNumber(meta.id)) continue;
+        const neighbors = linksByAddress.get(meta.address);
+        const linked_glyph_addresses = neighbors ? Array.from(neighbors).sort() : [];
+        boxes.push({
+          type: 'glyphBox',
+          x: x,
+          y: y,
+          boxIndex: meta.id,
+          glyph_address: meta.address,
+          linked_glyph_addresses: linked_glyph_addresses,
+          linked_text_strings: [],
+          linkedIndices: [],
+        });
+      }
+      return { boxes: boxes };
+    }
+
+    function downloadProjectJsonBlob(payload, filename) {
+      const text = JSON.stringify(payload, null, 2);
+      const blob = new Blob([text], { type: 'application/json;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename || 'glyphboard-project.json';
+      a.rel = 'noopener';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    window.glyphBoardApi = {
+      addGlyphsFromTabletLoad(data) {
+        const list = (data && data.glyphs) || [];
+        if (list.length === 0) return Promise.resolve();
+        const off = computeBoardLoadOrigin();
+        let chain = Promise.resolve();
+        for (let i = 0; i < list.length; i++) {
+          const g = list[i];
+          if (!g.image_url) continue;
+          const ghost = {
+            id: nextGlyphId++,
+            name: g.name || (g.address ? g.address + '.png' : 'glyph.png'),
+            address: g.address,
+            url: g.image_url,
+            transliteration: g.transliteration,
+            confidence: normalizeConfidence(g.confidence),
+            labels_str: g.labels_str,
+            comments_str: g.comments_str,
+            alternates_str: g.alternates_str,
+            corpus_filepath: g.corpus_filepath != null ? g.corpus_filepath : null,
+            x: 0,
+            y: 0,
+            rotation: 0,
+          };
+          const pos = { x: off.x + g.x, y: off.y + g.y };
+          chain = chain.then(
+            () =>
+              new Promise((resolve) => {
+                addGlyphFromBoardData(ghost, pos, resolve);
+              })
+          );
+        }
+        return chain.then(() => {
+          updateGlyphCountBadge();
+        });
+      },
+      exportProjectJsonData() {
+        return buildProjectJsonPayload();
+      },
+      downloadProjectJson(filename) {
+        downloadProjectJsonBlob(buildProjectJsonPayload(), filename);
+      },
+      loadProjectFromJsonData(payload) {
+        pushLoadJsonTrace('loader-entry', { payloadType: typeof payload, hasBoxes: !!(payload && Array.isArray(payload.boxes)) });
+        // #region agent log
+        fetch('http://127.0.0.1:7244/ingest/9f272141-40ac-4b30-81e8-0ca28c38c5a5',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0f2480'},body:JSON.stringify({sessionId:'0f2480',runId:'initial',hypothesisId:'H4',location:'board.html:loadProject-entry',message:'Entered loadProjectFromJsonData',data:{payloadType:typeof payload,hasBoxes:!!(payload&&Array.isArray(payload.boxes)),templateCount:glyphTemplateByAddress.size,currentGlyphsOnBoard:allGlyphGroups.size,currentLinks:linkPairs.size},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
+        if (!payload || !Array.isArray(payload.boxes)) {
+          throw new Error('Project JSON must contain a boxes array.');
+        }
+        const allBoxes = payload.boxes;
+        const glyphBoxes = allBoxes.filter((box) => box && box.type === 'glyphBox');
+        const uniqueAddresses = [];
+        const seenAddr = new Set();
+        for (const box of glyphBoxes) {
+          const addr = box && box.glyph_address ? box.glyph_address : null;
+          if (!addr || seenAddr.has(addr)) continue;
+          seenAddr.add(addr);
+          uniqueAddresses.push(addr);
+        }
+        return hydrateGlyphTemplatesByAddress(uniqueAddresses).then(() => {
+          clearBoardForProjectLoad();
+          if (glyphBoxes.length === 0) {
+            return { ok: true, added: 0, skipped: 0, links: 0 };
+          }
+
+          const importedAddressByBoxIndex = new Map();
+          const existingBoxIndicesByAddress = new Map();
+          for (const box of glyphBoxes) {
+            if (!box || !isFiniteNumber(box.boxIndex) || !box.glyph_address) continue;
+            let setRef = existingBoxIndicesByAddress.get(box.glyph_address);
+            if (!setRef) {
+              setRef = new Set();
+              existingBoxIndicesByAddress.set(box.glyph_address, setRef);
+            }
+            setRef.add(box.boxIndex);
+          }
+
+          let added = 0;
+          let skipped = 0;
+          let chain = Promise.resolve();
+          for (const box of glyphBoxes) {
+            const address = box && box.glyph_address ? box.glyph_address : null;
+            if (!address || !isFiniteNumber(box.x) || !isFiniteNumber(box.y)) {
+              skipped++;
+              continue;
+            }
+            const srcGlyph = glyphTemplateByAddress.get(address);
+            if (!srcGlyph || !srcGlyph.url) {
+              skipped++;
+              continue;
+            }
+            const ghost = {
+              id: nextGlyphId++,
+              name: srcGlyph.name || (address + '.png'),
+              address,
+              url: srcGlyph.url,
+              transliteration: srcGlyph.transliteration,
+              confidence: normalizeConfidence(srcGlyph.confidence),
+              labels_str: srcGlyph.labels_str,
+              comments_str: srcGlyph.comments_str,
+              alternates_str: srcGlyph.alternates_str,
+              corpus_filepath: srcGlyph.corpus_filepath != null ? srcGlyph.corpus_filepath : null,
+              x: box.x,
+              y: box.y,
+              rotation: 0,
+            };
+            const pos = { x: box.x, y: box.y };
+            chain = chain.then(
+              () =>
+                new Promise((resolve) => {
+                  addGlyphFromBoardData(ghost, pos, function (group) {
+                    if (group) {
+                      added++;
+                      if (isFiniteNumber(box.boxIndex)) importedAddressByBoxIndex.set(box.boxIndex, address);
+                    }
+                    resolve();
+                  });
+                })
+            );
+          }
+
+          return chain.then(() => {
+            const inferredKeys = new Set();
+            for (const box of glyphBoxes) {
+              if (!box || !isFiniteNumber(box.boxIndex)) continue;
+              const sourceAddress = importedAddressByBoxIndex.get(box.boxIndex);
+              if (!sourceAddress) continue;
+
+              let linkedAnyByIndex = false;
+              if (Array.isArray(box.linkedIndices)) {
+                for (const targetBoxIndex of box.linkedIndices) {
+                  if (!isFiniteNumber(targetBoxIndex)) continue;
+                  const targetAddress = importedAddressByBoxIndex.get(targetBoxIndex);
+                  if (!targetAddress || targetAddress === sourceAddress) continue;
+                  inferredKeys.add(linkKey(sourceAddress, targetAddress));
+                  linkedAnyByIndex = true;
+                }
+              }
+
+              if (linkedAnyByIndex) continue;
+              if (!Array.isArray(box.linked_glyph_addresses)) continue;
+              for (const targetAddress of box.linked_glyph_addresses) {
+                if (!targetAddress || targetAddress === sourceAddress) continue;
+                const hasImportedAddress = glyphInstancesByAddress.has(targetAddress) || existingBoxIndicesByAddress.has(targetAddress);
+                if (!hasImportedAddress) continue;
+                inferredKeys.add(linkKey(sourceAddress, targetAddress));
+              }
+            }
+
+            for (const key of inferredKeys) {
+              linkPairs.add(key);
+            }
+            redrawAllLinks();
+            clearSelection();
+            updateDetailPanel(null);
+            updateGlyphCountBadge();
+            pushLoadJsonTrace('loader-exit', { added: added, skipped: skipped, links: inferredKeys.size });
+            // #region agent log
+            fetch('http://127.0.0.1:7244/ingest/9f272141-40ac-4b30-81e8-0ca28c38c5a5',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0f2480'},body:JSON.stringify({sessionId:'0f2480',runId:'post-fix',hypothesisId:'H5',location:'board.html:loadProject-exit',message:'Completed loadProjectFromJsonData',data:{glyphBoxes:glyphBoxes.length,added:added,skipped:skipped,links:inferredKeys.size,renderedGlyphs:allGlyphGroups.size,renderedLinks:linkPairs.size},timestamp:Date.now()})}).catch(()=>{});
+            // #endregion
+            return { ok: true, added, skipped, links: inferredKeys.size };
+          });
+        });
+      },
+    };
+
+    let lastSearchFlatGlyphs = [];
+
+    const searchQueryEl = document.getElementById('search-query');
+    const searchRunBtn = document.getElementById('search-run-btn');
+    const searchAddBtn = document.getElementById('search-add-board-btn');
+    const searchExactEl = document.getElementById('search-exact');
+    const searchLettersEl = document.getElementById('search-letters');
+    const searchLabelsEl = document.getElementById('search-labels');
+    const searchThumbSizeEl = document.getElementById('search-thumb-size');
+    const searchStatusEl = document.getElementById('search-status');
+    const searchResultsEl = document.getElementById('search-results');
+
+    function getSearchThumbPx() {
+      return searchThumbSizeEl ? Number(searchThumbSizeEl.value) || 80 : 80;
+    }
+
+    function applySearchThumbSizeToImages() {
+      const px = getSearchThumbPx();
+      if (!searchResultsEl) return;
+      searchResultsEl.querySelectorAll('img.search-hit-thumb').forEach((im) => {
+        im.style.maxWidth = px + 'px';
+        im.style.maxHeight = px + 'px';
+      });
+    }
+
+    function renderSearchRows(rows) {
+      if (!searchResultsEl) return;
+      searchResultsEl.textContent = '';
+      const px = getSearchThumbPx();
+      for (const row of rows) {
+        const wrap = document.createElement('div');
+        wrap.className = 'search-row';
+        const title = document.createElement('div');
+        title.className = 'search-row-title';
+        const n = row.glyphs ? row.glyphs.length : 0;
+        title.textContent = row.transliteration + ' (' + n + ' matches)';
+        const thumbs = document.createElement('div');
+        thumbs.className = 'search-row-thumbs';
+        if (row.glyphs) {
+          for (const g of row.glyphs) {
+            if (g.has_image && g.image_url) {
+              const im = document.createElement('img');
+              im.className = 'search-hit-thumb';
+              im.alt = g.address || '';
+              im.src = g.image_url;
+              im.style.maxWidth = px + 'px';
+              im.style.maxHeight = px + 'px';
+              thumbs.appendChild(im);
+            } else {
+              const miss = document.createElement('span');
+              miss.className = 'search-thumb-missing';
+              miss.textContent = (g.address || '?') + ' (no image)';
+              thumbs.appendChild(miss);
+            }
+          }
+        }
+        wrap.appendChild(title);
+        wrap.appendChild(thumbs);
+        wrap.addEventListener('click', function () {
+          if (searchQueryEl) searchQueryEl.value = row.transliteration;
+          runTransliterationSearch();
+          const body = document.querySelector('.search-panel-body');
+          if (body) body.scrollTop = 0;
+        });
+        searchResultsEl.appendChild(wrap);
+      }
+    }
+
+    async function runTransliterationSearch() {
+      if (!searchQueryEl || !searchStatusEl) return;
+      const q = searchQueryEl.value.trim();
+      if (!q) {
+        lastSearchFlatGlyphs = [];
+        searchStatusEl.textContent = 'No results';
+        if (searchResultsEl) searchResultsEl.textContent = '';
+        return;
+      }
+      try {
+        const resp = await fetch(API_GLYPH_SEARCH_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            query: q,
+            exact_match: !!(searchExactEl && searchExactEl.checked),
+            include_letters: !!(searchLettersEl && searchLettersEl.checked),
+            search_labels: !!(searchLabelsEl && searchLabelsEl.checked),
+          }),
+        });
+        const data = await resp.json();
+        if (!data || !data.ok) {
+          searchStatusEl.textContent = 'Search failed';
+          return;
+        }
+        lastSearchFlatGlyphs = data.flat_glyphs || [];
+        if (!data.total_groups) {
+          searchStatusEl.textContent = 'No results';
+        } else {
+          searchStatusEl.textContent = 'Showing ' + data.total_groups + ' transliteration groups';
+        }
+        renderSearchRows(data.rows || []);
+      } catch (e) {
+        console.error(e);
+        searchStatusEl.textContent = 'Search error';
+      }
+    }
+
+    async function addSearchResultsToBoard() {
+      const list = lastSearchFlatGlyphs.filter((g) => g.has_image && g.image_url);
+      if (list.length === 0) return;
+
+      const padding = 30;
+      const maxWidth = 5000;
+      let maxBottom = 0;
+      for (const g of allGlyphGroups) {
+        const r = groupBoxInGlyphLayer(g);
+        const bottom = r.y + r.height + padding;
+        if (bottom > maxBottom) maxBottom = bottom;
+      }
+      let currentX = 0;
+      let currentY = maxBottom;
+      const SLOT = 130;
+      const ROW_H = 200;
+
+      for (const ginfo of list) {
+        const ghost = {
+          id: nextGlyphId++,
+          name: ginfo.name,
+          address: ginfo.address,
+          url: ginfo.image_url,
+          transliteration: ginfo.transliteration,
+          confidence: normalizeConfidence(ginfo.confidence),
+          labels_str: ginfo.labels_str,
+          comments_str: ginfo.comments_str,
+          alternates_str: ginfo.alternates_str,
+          corpus_filepath: null,
+          x: currentX,
+          y: currentY,
+          rotation: 0,
+        };
+        const pos = { x: currentX, y: currentY };
+        await new Promise((resolve) => {
+          addGlyphFromBoardData(ghost, pos, resolve);
+        });
+        currentX += SLOT;
+        if (currentX > maxWidth) {
+          currentX = 0;
+          currentY += ROW_H;
+        }
+      }
+      updateGlyphCountBadge();
+    }
+
+    if (searchRunBtn) searchRunBtn.addEventListener('click', runTransliterationSearch);
+    if (searchAddBtn) searchAddBtn.addEventListener('click', addSearchResultsToBoard);
+    if (searchQueryEl) {
+      searchQueryEl.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          runTransliterationSearch();
+        }
+      });
+    }
+    if (searchThumbSizeEl) {
+      searchThumbSizeEl.addEventListener('input', applySearchThumbSizeToImages);
+    }
+
+    const scaleBy = 1.05;
+    stage.on('wheel', (e) => {
+      e.evt.preventDefault();
+
+      const oldScale = stage.scaleX();
+      const pointer = stage.getPointerPosition();
+
+      const mousePointTo = {
+        x: (pointer.x - stage.x()) / oldScale,
+        y: (pointer.y - stage.y()) / oldScale,
+      };
+
+      const direction = e.evt.deltaY > 0 ? -1 : 1;
+      const newScale = direction > 0 ? oldScale * scaleBy : oldScale / scaleBy;
+
+      stage.scale({ x: newScale, y: newScale });
+
+      const newPos = {
+        x: pointer.x - mousePointTo.x * newScale,
+        y: pointer.y - mousePointTo.y * newScale,
+      };
+
+      stage.position(newPos);
+      stage.batchDraw();
+    });
+
+    window.addEventListener('resize', () => {
+      const sz = getBoardSize();
+      stage.width(sz.width);
+      stage.height(sz.height);
+      updateSelectionChrome();
+      redrawAllLinks();
+      stage.batchDraw();
+    });
+
+    // #region agent log
+    postDebugLog('H0', 'board.html:keydown-register', 'Registering keydown handler', {});
+    // #endregion
+    window.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowRight' || e.key === 'ArrowLeft' || e.code === 'ArrowRight' || e.code === 'ArrowLeft' || e.key === 'Right' || e.key === 'Left') {
+        // #region agent log
+        postDebugLog('H1', 'board.html:keydown-entry', 'Hotkey candidate keydown seen', {
+          key: e.key,
+          code: e.code,
+          ctrlKey: !!e.ctrlKey,
+          metaKey: !!e.metaKey,
+          activeTag: document.activeElement && document.activeElement.tagName ? document.activeElement.tagName : null,
+          selectedCount: selectedGroups.size,
+        });
+        // #endregion
+      }
+      const tag = document.activeElement && document.activeElement.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || (document.activeElement && document.activeElement.isContentEditable)) {
+        // #region agent log
+        postDebugLog('H2', 'board.html:keydown-focus-guard', 'Blocked by editable focus', {
+          key: e.key,
+          code: e.code,
+          tag: tag || null,
+          isContentEditable: !!(document.activeElement && document.activeElement.isContentEditable),
+        });
+        // #endregion
+        return;
+      }
+
+      // Step next/previous glyphs within the same tablet using arrow keys.
+      const isRight = e.key === 'ArrowRight' || e.code === 'ArrowRight' || e.key === 'Right';
+      const isLeft = e.key === 'ArrowLeft' || e.code === 'ArrowLeft' || e.key === 'Left';
+      if (isRight || isLeft) {
+        if (selectedGroups.size === 0) {
+          // #region agent log
+          postDebugLog('H3', 'board.html:selection-empty', 'Hotkey matched but no selected glyphs', {
+            direction: isRight ? 1 : -1,
+          });
+          // #endregion
+          return;
+        }
+        e.preventDefault();
+
+        const direction = isRight ? 1 : -1;
+        const selections = [];
+        for (const g of selectedGroups) {
+          if (!g || !g.glyphMeta) continue;
+          const meta = g.glyphMeta;
+          if (!meta.address) continue;
+          const imgNode = meta.imageNode;
+          const w = imgNode && typeof imgNode.width === 'function' ? imgNode.width() : 120;
+          const h = imgNode && typeof imgNode.height === 'function' ? imgNode.height() : 120;
+          selections.push({
+            address: meta.address,
+            x: g.x(),
+            y: g.y(),
+            w: w,
+            h: h,
+          });
+        }
+
+        // #region agent log
+        postDebugLog('H3', 'board.html:selection-built', 'Step payload built', {
+          direction: direction,
+          selectedCount: selectedGroups.size,
+          payloadCount: selections.length,
+          addresses: selections.map((s) => s.address),
+        });
+        // #endregion
+
+        // #region agent log
+        postDebugLog('H4', 'board.html:fetch-start', 'Calling step API', {
+          api: API_STEP_GLYPH_URL,
+          direction: direction,
+          payloadCount: selections.length,
+        });
+        // #endregion
+        fetch(API_STEP_GLYPH_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ direction, selections }),
+        })
+          .then((resp) => {
+            // #region agent log
+            postDebugLog('H4', 'board.html:fetch-response', 'Step API HTTP response', {
+              status: resp.status,
+              ok: !!resp.ok,
+            });
+            // #endregion
+            return resp.json();
+          })
+          .then((data) => {
+            // #region agent log
+            postDebugLog('H5', 'board.html:fetch-json', 'Step API JSON parsed', {
+              hasData: !!data,
+              ok: !!(data && data.ok),
+              glyphCount: data && Array.isArray(data.glyphs) ? data.glyphs.length : null,
+            });
+            // #endregion
+            if (!data || !data.ok) return;
+            const list = data.glyphs || [];
+            if (list.length === 0) {
+              selectedGroups.clear();
+              updateSelectionChrome();
+              refreshDetailPanelIfLive();
+              return;
+            }
+            const toPlace = filterStepGlyphsWithoutCollision(list);
+            if (toPlace.length === 0) {
+              selectedGroups.clear();
+              updateSelectionChrome();
+              refreshDetailPanelIfLive();
+              return;
+            }
+
+            // Replace selection with the newly added glyphs only.
+            selectedGroups.clear();
+            detailGroupRef = null;
+
+            const added = [];
+            let chain = Promise.resolve();
+            for (const item of toPlace) {
+              if (!item || !item.image_url || !item.address) continue;
+              const ghost = {
+                id: nextGlyphId++,
+                name: item.name || (item.address ? item.address + '.png' : 'glyph.png'),
+                address: item.address,
+                url: item.image_url,
+                transliteration: item.transliteration,
+                confidence: normalizeConfidence(item.confidence),
+                labels_str: item.labels_str,
+                comments_str: item.comments_str,
+                alternates_str: item.alternates_str,
+                corpus_filepath: item.corpus_filepath != null ? item.corpus_filepath : null,
+                x: item.x,
+                y: item.y,
+                rotation: 0,
+              };
+              const pos = { x: item.x, y: item.y };
+              chain = chain.then(
+                () =>
+                  new Promise((resolve) => {
+                    addGlyphFromBoardData(ghost, pos, function (group) {
+                      if (group) added.push(group);
+                      resolve();
+                    });
+                  })
+              );
+            }
+
+            chain.then(() => {
+              for (const g of added) selectedGroups.add(g);
+              updateSelectionChrome();
+              glyphLayer.batchDraw();
+              if (added.length > 0) updateDetailPanel(added[0]);
+              uiLayer.batchDraw();
+            });
+          })
+          .catch((err) => {
+            // #region agent log
+            postDebugLog('H4', 'board.html:fetch-error', 'Step API call failed', {
+              message: err && err.message ? err.message : String(err),
+            });
+            // #endregion
+            console.error('step-glyph', err);
+          });
+
+        return;
+      }
+
+      if (e.key === ' ' || e.code === 'Space' || e.key === 'Spacebar') {
+        e.preventDefault();
+        connectSelectedGlyphAddresses();
+        return;
+      }
+
+      if (!e.ctrlKey && !e.metaKey && !e.altKey) {
+        const alignKey = typeof e.key === 'string' ? e.key.toLowerCase() : '';
+        if (alignKey === 'h' || alignKey === 'v') {
+          if (selectedGroups.size === 0) return;
+          e.preventDefault();
+          applyMedianAlignSelection(alignKey === 'h' ? 'horizontal' : 'vertical');
+          return;
+        }
+      }
+
+      // Delete key behavior.
+      if (e.key !== 'Delete' && e.key !== 'Backspace') return;
+      if (selectedGroups.size === 0) return;
+      e.preventDefault();
+      deleteSelectedGlyphs();
+    }, true);
+  </script>
+
+  <script>
+    (function () {
+      var API_TABLET_LOAD_URL = '/api/tablet-load';
+
+      var SERVER_TABLET_LAYOUT = {};
+      try {
+        var layoutDataEl = document.getElementById('tablet-layout-data');
+        if (layoutDataEl && layoutDataEl.textContent) {
+          SERVER_TABLET_LAYOUT = JSON.parse(layoutDataEl.textContent);
+        }
+      } catch (err) {
+        console.warn('tablet layout JSON', err);
+      }
+
+      var TABLET_NAMES = [
+        ['A', 'Tahua'],
+        ['B', 'Aruku-Kurenga'],
+        ['C', 'Mamari'],
+        ['D', 'Échancrée'],
+        ['E', 'Keiti'],
+        ['F', 'Stephen-Chauvet Fragment'],
+        ['G', 'Small Santiago'],
+        ['H', 'Great Santiago'],
+        ['I', 'Santiago Staff'],
+        ['J', 'Reimiro 1'],
+        ['K', 'Small London'],
+        ['L', 'Reimiro 2'],
+        ['M', 'Great Vienna'],
+        ['N', 'Small Vienna'],
+        ['O', 'Boomerang'],
+        ['P', 'Great St. Petersburg'],
+        ['Q', 'Small St. Petersburg'],
+        ['R', 'Atua-Mata-Riri'],
+        ['S', 'Great Washington'],
+        ['T', 'Honolulu 1'],
+        ['U', 'Honolulu 2'],
+        ['V', 'Honolulu 3'],
+        ['W', 'Honolulu 4'],
+        ['X', 'Tangata Manu'],
+        ['Y', 'Snuff Box'],
+      ];
+
+      function mergeLayoutForLetter(letter) {
+        var inferred = SERVER_TABLET_LAYOUT[letter];
+        var sides = inferred && inferred.sides ? inferred.sides.slice() : [];
+        var linesBySide = (inferred && inferred.linesBySide) ? inferred.linesBySide : {};
+        return { letter: letter, sides: sides, linesBySide: linesBySide };
+      }
+
+      function sideDisplayLabel(sideId, numSides) {
+        if (numSides === 1) return 'Single face';
+        if (sideId === 'r') return 'Recto';
+        if (sideId === 'v') return 'Verso';
+        return "Side '" + sideId + "'";
+      }
+
+      function refreshSideFromLines(sideEl) {
+        var lines = sideEl.querySelectorAll('.line-cb');
+        var n = lines.length;
+        var checked = 0;
+        for (var i = 0; i < lines.length; i++) {
+          if (lines[i].checked) checked++;
+        }
+        var sideCb = sideEl.querySelector('.side-cb');
+        if (!sideCb) return;
+        if (checked === 0) {
+          sideCb.checked = false;
+          sideCb.indeterminate = false;
+        } else if (checked === n) {
+          sideCb.checked = true;
+          sideCb.indeterminate = false;
+        } else {
+          sideCb.checked = false;
+          sideCb.indeterminate = true;
+        }
+      }
+
+      function refreshTabletFromLines(tabletEl) {
+        var lines = tabletEl.querySelectorAll('.line-cb');
+        var n = lines.length;
+        var checked = 0;
+        for (var i = 0; i < lines.length; i++) {
+          if (lines[i].checked) checked++;
+        }
+        var tabletCb = tabletEl.querySelector('.tablet-cb');
+        if (!tabletCb) return;
+        if (checked === 0) {
+          tabletCb.checked = false;
+          tabletCb.indeterminate = false;
+        } else if (checked === n) {
+          tabletCb.checked = true;
+          tabletCb.indeterminate = false;
+        } else {
+          tabletCb.checked = false;
+          tabletCb.indeterminate = true;
+        }
+      }
+
+      function renderTabletTree() {
+        var tree = document.getElementById('tablet-load-tree');
+        if (!tree) return;
+        tree.textContent = '';
+        var frag = document.createDocumentFragment();
+        for (var t = 0; t < TABLET_NAMES.length; t++) {
+          var letter = TABLET_NAMES[t][0];
+          var displayName = TABLET_NAMES[t][1];
+          var row = mergeLayoutForLetter(letter);
+          var numSides = row.sides.length;
+          var details = document.createElement('details');
+          details.className = 'tablet-details';
+          details.dataset.letter = letter;
+          var summary = document.createElement('summary');
+          var tabletCb = document.createElement('input');
+          tabletCb.type = 'checkbox';
+          tabletCb.className = 'tablet-cb';
+          tabletCb.dataset.letter = letter;
+          tabletCb.addEventListener('click', function (e) {
+            e.stopPropagation();
+          });
+          var span = document.createElement('span');
+          span.className = 'tablet-summary-text';
+          span.textContent = letter + ' — ' + displayName;
+          summary.appendChild(tabletCb);
+          summary.appendChild(span);
+          details.appendChild(summary);
+          var sidesWrap = document.createElement('div');
+          sidesWrap.className = 'tablet-sides';
+          if (numSides === 0) {
+            tabletCb.disabled = true;
+            var empty = document.createElement('p');
+            empty.className = 'tablet-dialog-empty';
+            empty.textContent = 'No addresses for this tablet in corpus_transliterations.json.';
+            sidesWrap.appendChild(empty);
+            details.appendChild(sidesWrap);
+            frag.appendChild(details);
+            continue;
+          }
+          for (var s = 0; s < row.sides.length; s++) {
+            var sideId = row.sides[s];
+            var nLines = row.linesBySide[sideId];
+            if (nLines == null || nLines < 1) nLines = 1;
+            var sideBlock = document.createElement('div');
+            sideBlock.className = 'side-block';
+            sideBlock.dataset.side = sideId;
+            var head = document.createElement('div');
+            head.className = 'side-block-head';
+            var sideCb = document.createElement('input');
+            sideCb.type = 'checkbox';
+            sideCb.className = 'side-cb';
+            sideCb.dataset.letter = letter;
+            sideCb.dataset.side = sideId;
+            var sideLabelEl = document.createElement('label');
+            sideLabelEl.appendChild(sideCb);
+            var sideText = document.createElement('span');
+            sideText.textContent = sideDisplayLabel(sideId, numSides);
+            sideLabelEl.appendChild(sideText);
+            head.appendChild(sideLabelEl);
+            sideBlock.appendChild(head);
+            var lineRow = document.createElement('div');
+            lineRow.className = 'line-row';
+            for (var line = 1; line <= nLines; line++) {
+              var lab = document.createElement('label');
+              var lineCb = document.createElement('input');
+              lineCb.type = 'checkbox';
+              lineCb.className = 'line-cb';
+              lineCb.dataset.letter = letter;
+              lineCb.dataset.side = sideId;
+              lineCb.dataset.line = String(line);
+              lab.appendChild(lineCb);
+              lab.appendChild(document.createTextNode('L' + line));
+              lineRow.appendChild(lab);
+            }
+            sideBlock.appendChild(lineRow);
+            sidesWrap.appendChild(sideBlock);
+          }
+          details.appendChild(sidesWrap);
+          frag.appendChild(details);
+        }
+        tree.appendChild(frag);
+      }
+
+      function collectTabletSelection() {
+        var out = [];
+        var tree = document.getElementById('tablet-load-tree');
+        if (!tree) return out;
+        var checked = tree.querySelectorAll('.line-cb:checked');
+        for (var i = 0; i < checked.length; i++) {
+          var cb = checked[i];
+          out.push({
+            letter: cb.dataset.letter,
+            side: cb.dataset.side,
+            line: Number(cb.dataset.line),
+          });
+        }
+        return out;
+      }
+
+      function wireTabletTree() {
+        var tree = document.getElementById('tablet-load-tree');
+        if (!tree) return;
+        tree.addEventListener('click', function (e) {
+          if (e.target.classList && e.target.classList.contains('tablet-cb')) {
+            e.stopPropagation();
+          }
+        }, true);
+        tree.addEventListener('change', function (e) {
+          var t = e.target;
+          if (!t || t.type !== 'checkbox') return;
+          if (t.classList.contains('tablet-cb')) {
+            var details = t.closest('.tablet-details');
+            if (!details) return;
+            var v = t.checked;
+            t.indeterminate = false;
+            var sides = details.querySelectorAll('.side-cb');
+            for (var i = 0; i < sides.length; i++) {
+              sides[i].checked = v;
+              sides[i].indeterminate = false;
+            }
+            var lines = details.querySelectorAll('.line-cb');
+            for (var j = 0; j < lines.length; j++) {
+              lines[j].checked = v;
+            }
+            return;
+          }
+          if (t.classList.contains('side-cb')) {
+            var sideEl = t.closest('.side-block');
+            if (!sideEl) return;
+            var want = t.checked;
+            t.indeterminate = false;
+            var lineCbs = sideEl.querySelectorAll('.line-cb');
+            for (var k = 0; k < lineCbs.length; k++) {
+              lineCbs[k].checked = want;
+            }
+            refreshTabletFromLines(sideEl.closest('.tablet-details'));
+            return;
+          }
+          if (t.classList.contains('line-cb')) {
+            var sideBlock = t.closest('.side-block');
+            var tabletDetails = t.closest('.tablet-details');
+            if (sideBlock) refreshSideFromLines(sideBlock);
+            if (tabletDetails) refreshTabletFromLines(tabletDetails);
+          }
+        });
+      }
+
+      var tabletLoadDialog = document.getElementById('tablet-load-dialog');
+      var tabletLoadCancel = document.getElementById('tablet-load-cancel');
+      var tabletLoadApply = document.getElementById('tablet-load-apply');
+
+      function resetTabletLoadSelections() {
+        var tree = document.getElementById('tablet-load-tree');
+        if (!tree) return;
+        var cbs = tree.querySelectorAll('input[type="checkbox"]');
+        for (var i = 0; i < cbs.length; i++) {
+          var cb = cbs[i];
+          cb.checked = false;
+          cb.indeterminate = false;
+        }
+      }
+
+      function openTabletLoadDialog() {
+        if (!tabletLoadDialog) return;
+        resetTabletLoadSelections();
+        if (typeof tabletLoadDialog.showModal === 'function') {
+          tabletLoadDialog.showModal();
+        } else {
+          tabletLoadDialog.setAttribute('open', '');
+        }
+      }
+
+      window.openTabletLoadDialog = openTabletLoadDialog;
+
+      renderTabletTree();
+      wireTabletTree();
+
+      if (tabletLoadCancel && tabletLoadDialog) {
+        tabletLoadCancel.addEventListener('click', function () {
+          tabletLoadDialog.close();
+        });
+      }
+
+      if (tabletLoadApply && tabletLoadDialog) {
+        tabletLoadApply.addEventListener('click', function () {
+          var selections = collectTabletSelection();
+          if (selections.length === 0) {
+            tabletLoadDialog.close();
+            return;
+          }
+          tabletLoadApply.disabled = true;
+          fetch(API_TABLET_LOAD_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ selections: selections }),
+          })
+            .then(function (resp) {
+              return resp.json();
+            })
+            .then(function (data) {
+              if (!data || !data.ok) {
+                console.error('tablet-load failed', data);
+                return;
+              }
+              if (window.glyphBoardApi && typeof window.glyphBoardApi.addGlyphsFromTabletLoad === 'function') {
+                return window.glyphBoardApi.addGlyphsFromTabletLoad(data);
+              }
+            })
+            .catch(function (err) {
+              console.error('tablet-load', err);
+            })
+            .finally(function () {
+              tabletLoadApply.disabled = false;
+              tabletLoadDialog.close();
+            });
+        });
+      }
+
+    })();
+  </script>
+</body>
+</html>

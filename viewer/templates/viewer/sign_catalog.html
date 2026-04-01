@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign frequency catalog</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      background: #fff;
+      color: #222;
+    }
+    .page-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+      background: #f6f7f9;
+    }
+    .page-header h1 {
+      margin: 0 0 6px;
+      font-size: 18px;
+      font-weight: 700;
+      color: #333;
+    }
+    .page-header p {
+      margin: 0;
+      font-size: 13px;
+      color: #666;
+      max-width: 720px;
+      line-height: 1.45;
+    }
+    .catalog-main {
+      padding: 16px 18px 48px;
+      max-width: 1100px;
+    }
+    .status-msg {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 12px;
+    }
+    .status-msg.error {
+      color: #b00020;
+    }
+    .sign-list {
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: 8px;
+      overflow: hidden;
+      background: #fff;
+    }
+    .sign-block {
+      border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    }
+    .sign-block:last-child {
+      border-bottom: none;
+    }
+    .sign-summary {
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-size: 14px;
+      background: #fafafa;
+    }
+    .sign-summary::-webkit-details-marker {
+      display: none;
+    }
+    .sign-summary::before {
+      content: '\25B6';
+      font-size: 10px;
+      color: #666;
+      width: 14px;
+      flex-shrink: 0;
+      transition: transform 0.15s ease;
+    }
+    details[open] > .sign-summary::before {
+      transform: rotate(90deg);
+    }
+    .sign-summary:hover {
+      background: rgba(10, 110, 207, 0.06);
+    }
+    .sign-token {
+      font-weight: 600;
+      font-family: Consolas, 'Courier New', monospace;
+      flex: 1;
+      min-width: 0;
+      word-break: break-all;
+    }
+    .sign-occ-count {
+      color: #555;
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+    .sign-examples-panel {
+      padding: 12px 14px 16px;
+      background: #fff;
+      border-top: 1px solid rgba(0, 0, 0, 0.06);
+    }
+    .examples-loading, .examples-empty, .examples-error {
+      font-size: 13px;
+      color: #666;
+      margin: 0;
+    }
+    .examples-error {
+      color: #b00020;
+    }
+    .examples-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+      gap: 10px;
+    }
+    .example-cell {
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: 6px;
+      padding: 6px;
+      text-align: center;
+      background: #fcfcfc;
+    }
+    .example-cell img {
+      max-width: 100%;
+      height: auto;
+      vertical-align: middle;
+      display: block;
+      margin: 0 auto 4px;
+    }
+    .example-addr {
+      font-size: 10px;
+      color: #555;
+      word-break: break-all;
+      line-height: 1.25;
+    }
+    .example-translit {
+      font-size: 11px;
+      font-family: Consolas, 'Courier New', monospace;
+      color: #1a4480;
+      word-break: break-all;
+      line-height: 1.3;
+      margin-bottom: 3px;
+    }
+    .catalog-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .catalog-toolbar-btn {
+      font-size: 13px;
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(0, 0, 0, 0.15);
+      background: #fff;
+      cursor: pointer;
+      color: #222;
+    }
+    .catalog-toolbar-btn:hover {
+      background: rgba(10, 110, 207, 0.08);
+    }
+    .catalog-toolbar-hint {
+      font-size: 12px;
+      color: #777;
+      margin: 0;
+      flex: 1;
+      min-width: 180px;
+    }
+    .examples-section-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #444;
+      margin: 14px 0 8px;
+    }
+    .examples-section-title:first-of-type {
+      margin-top: 0;
+    }
+    .example-no-img {
+      font-size: 11px;
+      color: #888;
+      min-height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  </style>
+</head>
+<body>
+  <header class="page-header">
+    <h1>Sign frequency catalog</h1>
+    <p>
+      Signs are sorted by how often they appear in corpus transliterations (including inside multi-sign glyphs).
+      Expand a row for up to 100 examples: single-sign glyphs first, then compound glyphs that contain the sign (full transliteration shown).
+      Use <strong>Expand all sign rows</strong> below to open every dropdown at once (many network requests).
+    </p>
+  </header>
+  <main class="catalog-main">
+    <p class="status-msg" id="catalog-status">Loading sign statistics…</p>
+    <div class="catalog-toolbar" id="catalog-toolbar" hidden>
+      <button type="button" class="catalog-toolbar-btn" id="expand-all-sign-rows-btn">Expand all sign rows</button>
+      <button type="button" class="catalog-toolbar-btn" id="collapse-all-sign-rows-btn">Collapse all sign rows</button>
+      <p class="catalog-toolbar-hint">Expands every dropdown so all example sections load on this page.</p>
+    </div>
+    <div class="sign-list" id="sign-list" hidden></div>
+  </main>
+  <script>
+    (function () {
+      const API_STATS = "{% url 'transliteration_sign_stats' %}";
+      const API_EXAMPLES = "{% url 'transliteration_sign_examples' %}";
+      const statusEl = document.getElementById('catalog-status');
+      const toolbarEl = document.getElementById('catalog-toolbar');
+      const expandAllBtn = document.getElementById('expand-all-sign-rows-btn');
+      const collapseAllBtn = document.getElementById('collapse-all-sign-rows-btn');
+      const listEl = document.getElementById('sign-list');
+      const exampleCache = new Map();
+
+      function setStatus(text, isError) {
+        statusEl.textContent = text;
+        statusEl.classList.toggle('error', !!isError);
+      }
+
+      function appendExampleGrid(panel, glyphs, showTranslit) {
+        const grid = document.createElement('div');
+        grid.className = 'examples-grid';
+        glyphs.forEach(function (g) {
+          const cell = document.createElement('div');
+          cell.className = 'example-cell';
+          if (g.has_image && g.image_url) {
+            const img = document.createElement('img');
+            img.src = g.image_url;
+            img.alt = g.address || '';
+            cell.appendChild(img);
+          } else {
+            const ph = document.createElement('div');
+            ph.className = 'example-no-img';
+            ph.textContent = 'No image';
+            cell.appendChild(ph);
+          }
+          if (showTranslit && g.transliteration != null && String(g.transliteration).trim() !== '') {
+            const tr = document.createElement('div');
+            tr.className = 'example-translit';
+            tr.textContent = String(g.transliteration);
+            cell.appendChild(tr);
+          }
+          const cap = document.createElement('div');
+          cap.className = 'example-addr';
+          cap.textContent = g.address || '';
+          cell.appendChild(cap);
+          grid.appendChild(cell);
+        });
+        panel.appendChild(grid);
+      }
+
+      function renderExamples(panel, bundle) {
+        const single = Array.isArray(bundle.glyphs_single) ? bundle.glyphs_single : [];
+        const compound = Array.isArray(bundle.glyphs_compound) ? bundle.glyphs_compound : [];
+        panel.innerHTML = '';
+        if (!single.length && !compound.length) {
+          const p = document.createElement('p');
+          p.className = 'examples-empty';
+          p.textContent = 'No corpus glyphs found for this sign.';
+          panel.appendChild(p);
+          return;
+        }
+
+        if (single.length) {
+          const h = document.createElement('div');
+          h.className = 'examples-section-title';
+          h.textContent = 'Single-sign examples (' + String(single.length) + ')';
+          panel.appendChild(h);
+          appendExampleGrid(panel, single, false);
+        }
+        if (compound.length) {
+          const h2 = document.createElement('div');
+          h2.className = 'examples-section-title';
+          h2.textContent = 'Compound glyphs containing this sign (' + String(compound.length) + ')';
+          panel.appendChild(h2);
+          appendExampleGrid(panel, compound, true);
+        }
+      }
+
+      async function loadExamplesForDetails(detailEl, sign) {
+        const panel = detailEl.querySelector('.sign-examples-panel');
+        if (!panel) return;
+        panel.innerHTML = '';
+        const loading = document.createElement('p');
+        loading.className = 'examples-loading';
+        loading.textContent = 'Loading examples…';
+        panel.appendChild(loading);
+        try {
+          const resp = await fetch(API_EXAMPLES, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sign: sign, limit: 100 }),
+          });
+          const data = await resp.json().catch(function () { return null; });
+          if (!resp.ok || !data || !data.ok) {
+            throw new Error('Request failed');
+          }
+          const bundle = {
+            glyphs_single: Array.isArray(data.glyphs_single) ? data.glyphs_single : [],
+            glyphs_compound: Array.isArray(data.glyphs_compound) ? data.glyphs_compound : [],
+          };
+          if (!bundle.glyphs_single.length && !bundle.glyphs_compound.length && Array.isArray(data.glyphs)) {
+            bundle.glyphs_single = data.glyphs;
+          }
+          exampleCache.set(sign, bundle);
+          renderExamples(panel, bundle);
+        } catch (err) {
+          panel.innerHTML = '';
+          const p = document.createElement('p');
+          p.className = 'examples-error';
+          p.textContent = 'Could not load examples.';
+          panel.appendChild(p);
+        }
+      }
+
+      function attachDetailsHandler(details, sign) {
+        const panel = details.querySelector('.sign-examples-panel');
+        details.addEventListener('toggle', function () {
+          if (!details.open) return;
+          if (exampleCache.has(sign)) {
+            renderExamples(panel, exampleCache.get(sign));
+            return;
+          }
+          if (details.dataset.loading === '1') return;
+          details.dataset.loading = '1';
+          loadExamplesForDetails(details, sign).finally(function () {
+            delete details.dataset.loading;
+          });
+        });
+      }
+
+      async function init() {
+        try {
+          const resp = await fetch(API_STATS, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: '', limit: 500 }),
+          });
+          const data = await resp.json().catch(function () { return null; });
+          if (!resp.ok || !data || !data.ok) {
+            throw new Error('Failed to load statistics');
+          }
+          const signs = Array.isArray(data.signs) ? data.signs : [];
+          listEl.innerHTML = '';
+          signs.forEach(function (row) {
+            const sign = row.sign != null ? String(row.sign) : '';
+            const count = row.count != null ? row.count : 0;
+            const details = document.createElement('details');
+            details.className = 'sign-block';
+            details.dataset.sign = sign;
+            const summary = document.createElement('summary');
+            summary.className = 'sign-summary';
+            const tokenSpan = document.createElement('span');
+            tokenSpan.className = 'sign-token';
+            tokenSpan.textContent = sign || '(empty)';
+            const countSpan = document.createElement('span');
+            countSpan.className = 'sign-occ-count';
+            countSpan.textContent = String(count) + ' occ.';
+            summary.appendChild(tokenSpan);
+            summary.appendChild(countSpan);
+            const panel = document.createElement('div');
+            panel.className = 'sign-examples-panel';
+            details.appendChild(summary);
+            details.appendChild(panel);
+            listEl.appendChild(details);
+            attachDetailsHandler(details, sign);
+          });
+          listEl.hidden = false;
+          if (toolbarEl) toolbarEl.hidden = false;
+          setStatus(
+            signs.length
+              ? 'Showing ' + signs.length + ' sign(s) (max 500 by API limit). Expand a row, or use Expand all sign rows above.'
+              : 'No signs found.'
+          );
+        } catch (e) {
+          setStatus('Could not load sign statistics.', true);
+        }
+      }
+
+      if (expandAllBtn && listEl) {
+        expandAllBtn.addEventListener('click', function () {
+          listEl.querySelectorAll('details.sign-block').forEach(function (d) {
+            d.open = true;
+          });
+        });
+      }
+      if (collapseAllBtn && listEl) {
+        collapseAllBtn.addEventListener('click', function () {
+          listEl.querySelectorAll('details.sign-block').forEach(function (d) {
+            d.open = false;
+          });
+        });
+      }
+
+      init();
+    })();
+  </script>
+</body>
+</html>
