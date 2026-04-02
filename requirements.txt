@@ -3,6 +3,3 @@ Django==5.2.12
 gunicorn==25.3.0
 Pillow==11.0.0
 natsort==8.4.0
-numpy==1.26.0
-scipy==1.13.1
-tkinterdnd2==0.3.0
